@@ -1,59 +1,79 @@
-#create database pharma_database;
+-- Banco de dados do PIM II - Sistema de estoque correlacional farmacêutico
+-- Autores: José Antonio de Oliveira Rosa && Kaio Eduardo Braga Barbosa
 
-#use pharma_database;
+-- nome do banco => pharma_database
+create database pharma_database;
 
+-- Para a edição/criação das tabelas, precisa ser selecionado o banco de dados.
+use pharma_database;
 
-################# Filial ##########################
+-- Abaixo será criado as tabelas do sistema, caso seja necessário fazer qualquer alteração execute o comando de DROP
+-- e em seguida edite a estrutura da tabela.
 
-create table branches (
-numeration_branch varchar(5) unique not null primary key,
-cep_branch char(8) not null,
-street_branch varchar(100) not null,
-neighborhood_branch varchar(50) not null,
-city_branch varchar(50) not null,
-uf_branch char(2) not null
+-- Iniciaremos pelos possíveis usuários do sistema
+create table diretor (
+id_diretor char(6) unique not null primary key,
+nome_diretor varchar(50) not null,
+sobrenome_diretor varchar(50) not null,
+email_diretor varchar(255) not null unique,
+senha_diretor varchar(255) not null
 );
 
-################## Users ######################
-create table administrators (
-id_administrator char(8) unique not null primary key,
-name_administator varchar(50) not null,
-lastname_administrator varchar(50),
-email_administrator varchar(100) not null unique,
-password_administrator varchar(255) not null
+create table gerente (
+id_gerente char(6) unique not null primary key,
+nome_gerente varchar(50) not null,
+sobrenome_gerente varchar(50) not null,
+codigo_interno char(8) unique not null,
+email_gerente varchar(255) unique not null,
+senha_gerente varchar(255) not null,
+id_filial char(6) not null,
+id_diretor char(6) not null,
+foreign key (id_diretor) references diretor(id_diretor),
+foreign key (id_filial) references filial(id_filial)
 );
 
-create table managers (
-id_manager char(8) unique not null primary key,
-name_manager varchar(50) not null,
-lastname_manager varchar(50) not null,
-internal_code_manager char(6) not null unique,
-branch_manager char(3) not null, 
-password_manager varchar(255) not null,
-foreign key (branch_manager) references branches(numeration_branch)
+create table farmaceutico (
+id_farmaceutico char(6) unique not null primary key,
+nome_farmaceutico varchar(50) not null,
+sobrenome_farmaceutico varchar(50) not null,
+crf_farmaceutico varchar(15) unique not null,
+email_farmaceutico varchar(255) unique not null,
+senha_farmaceutico varchar(255) not null,
+id_filial char(6) not null,
+id_gerente char(6) not null,
+foreign key (id_filial) references filial(id_filial),
+foreign key (id_gerente) references gerente(id_gerente)
 );
 
-create table pharmaceuts (
-id_pharmaceut char(8) unique not null primary key,
-name_pharmaceut varchar(50) not null,
-lastname_pharmaceut varchar(50) not null,
-crf_pharmaceuts varchar(8) not null unique
+create table atendente (
+id_atendente char(6) unique not null primary key,
+nome_atendente varchar(50) not null,
+sobrenome_atendente varchar(50) not null,
+email_atendente varchar(255) unique not null,
+senha_atendente varchar(255) not null,
+id_filial char(6) not null,
+id_gerente char(6) not null,
+foreign key (id_filial) references filial(id_filial),
+foreign key (id_gerente) references gerente(id_gerente)
 );
 
-create table attendants (
-id_attendant char(8) not null primary key unique,
-name_attendant varchar(50) not null,
-internal_code_attendant char(6) not null unique,
-branch_attendant varchar(5) not null,
-foreign key (branch_attendant) references branches(numeration_branch)
+-- Aqui finalizamos os usuários e os seus tipos. O próximo passo vai ser criar a tabela da filial.
+
+create table filial(
+id_filial char(6) unique not null primary key,
+id_endereco char(6) not null,
+id_diretor char(6) not null,
+foreign key (id_endereco) references endereco(id_endereco),
+foreign key (id_diretor) references diretor(id_diretor)
 );
 
-#################### Estoque #######################
-
-create table stock (
-id_stock char(8) not null primary key unique,
-medication_stock varchar (100) not null,
-branch_stock varchar(5) not null,
-quantity_stock varchar(5) not null,
-foreign key (branch_stock) references branches(numeration_branch)
+create table endereco(
+id_endereco char(6) unique not null,
+cep char(8) not null,
+logradouro varchar(50) not null,
+numero varchar(10) not null,
+complemento varchar(20),
+bairro varchar(50) not null,
+cidade varchar(50) not null,
+estado varchar (50) not null
 );
