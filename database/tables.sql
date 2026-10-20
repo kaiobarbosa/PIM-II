@@ -77,3 +77,5 @@ bairro varchar(50) not null,
 cidade varchar(50) not null,
 estado varchar (50) not null
 );
+
+-- Aqui vamos fazer a criação da tabela de produto e de suas classificações

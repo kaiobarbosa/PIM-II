@@ -1,0 +1,32 @@
+- **Diretor:**
+	- O diretor ele é responsável por gerir o funcionamento das N filiais presentes na rede farmacêutica. O gerente ele é o **administrador** geral do sistema, possuindo todas as permissões do sistema.
+		- Permissões principais: 
+			- Criar novas filiais
+			- Adicionar novos gerentes em qualquer filial
+			- Adicionar novos farmacêuticos em qualquer filial
+			- Adicionar novas contas de atendentes em qualquer filial
+			- Acesso total ao estoque
+			- Acesso aos logs da aplicação
+
+- **Gerente:**
+	- O gerente é o responsável por gerir uma única filial, agindo como administrador daquela unidade específica.
+		- Permissões principais:
+			- Gerir os produtos
+			- Acesso aos logs locais da filial
+			- Acesso total ao estoque da filial 
+			- Acesso visual ao estoque das demais filiais 
+			- Adicionar novos farmacêuticos locais
+			- Adicionar novas contas de atendentes locais
+
+- **Farmacêutico:**
+	- O farmacêutico não possui permissões para adicionar nada ao estoque, apenas para dar baixa e visualizar os produtos. Entretanto, medicamentos que são classificados com maior severidade, por exemplo os tarja preta, precisam da autorização expecífica deles, informando o CRF
+		- Permissões principais:
+			- Visualizar produtos da rede
+			- Acesso ao estoque local
+			- Acesso ao estoque com maior severidade.
+
+- **Atendente:** 
+	- O atendente, sendo o funcionário com menor autorização dentro do sistema, pode apenas visualizar os produtos de toda a rede e dar baixa em medicamentos comuns da sua filial. Caso seja necessário dar baixar em um medicamento com maior grau de severidade
+		- Permissões principais
+			- Visualizar produtos da rede
+			- Acesso ao estoque local.
