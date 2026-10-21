@@ -1,6 +1,6 @@
 // Agora você inclui os .h em vez do .c
 #include "query_executor.h"
-#include "../../../config/database_connector.h" // Ajuste o caminho conforme as suas pastas
+#include "../../../config/database_connector.h"
 #include <stdio.h>
 
 void execute_query(MYSQL *conn, const char *query) {
