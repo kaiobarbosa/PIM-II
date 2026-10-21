@@ -1,1 +1,0 @@
-Em /config vai ser armazenados os principais arquivos de configuracao do sistema, como o arquivo responsável pela conexao com o banco, o de inicialização de algum framework, etc.

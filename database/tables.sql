@@ -79,3 +79,6 @@ estado varchar (50) not null
 );
 
 -- Aqui vamos fazer a criação da tabela de produto e de suas classificações
+
+INSERT INTO diretor (nome_diretor, sobrenome_diretor, email_diretor, senha_diretor) 
+VALUES ('Kaio', 'Teste', 'kaio@pharmastock.com', 'senha123');
