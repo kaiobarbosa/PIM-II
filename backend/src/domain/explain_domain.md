@@ -1,0 +1,1 @@
+Guarda as entidade e as validações para que seja possível criar as entidades

@@ -1,0 +1,1 @@
+Guarda dois principais módulos, repository e external_services.

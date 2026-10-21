@@ -1,0 +1,1 @@
+ é onde vai ser validade/criado/administrado o jwt ou token de validação do usuário no sistema
