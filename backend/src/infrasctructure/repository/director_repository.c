@@ -6,7 +6,7 @@ int check_director_exists() {
     MYSQL *conn = connect_to_database();
     if (conn == NULL) {
         fprintf(stderr, "Erro ao conectar ao banco de dados.\n");
-        return -1; // Retorna -1 para indicar que houve um erro de conexão
+        return -1;
     }
 
     const char *query = "SELECT COUNT(*) FROM Diretor";
@@ -19,9 +19,8 @@ int check_director_exists() {
         if (result != NULL) {
             MYSQL_ROW row = mysql_fetch_row(result);
             
-            // Verifica se a linha existe e possui dados na primeira coluna
             if (row && row[0]) {
-                sscanf(row[0], "%d", &count); // Converte o resultado de string para int
+                sscanf(row[0], "%d", &count); 
             }
             mysql_free_result(result);
         }
