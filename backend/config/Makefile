@@ -10,7 +10,8 @@ SRC = main.c \
       backend/config/database_connector.c \
       backend/src/infrasctructure/repository/query_executor.c \
       backend/src/use_case/director_use_case.c \
-      backend/src/infrasctructure/repository/director_repository.c
+      backend/src/infrasctructure/repository/director_repository.c\
+      frontend/screens/create_account.c \
 
 # Regra principal
 all: $(TARGET)

@@ -15,6 +15,5 @@ MYSQL* connect_to_database() {
         return NULL;
     }
 
-    printf("Conexão com o banco realizada com sucesso!\n");
     return conn;
 }

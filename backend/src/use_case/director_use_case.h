@@ -3,4 +3,6 @@
 
 int check_first_use();
 
+void create_director();
+
 #endif
