@@ -1,1 +1,0 @@
-módulo responsável, unicamenta e exclusivamente, por agir diretamente com o banco de dados. Ele é o unico que pode de fato realizar ações no banco.
