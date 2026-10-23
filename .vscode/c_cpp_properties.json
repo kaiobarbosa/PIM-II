@@ -10,7 +10,10 @@
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++14",
-            "intelliSenseMode": "macos-clang-arm64"
+            "intelliSenseMode": "macos-clang-arm64",
+            "compilerArgs": [
+                "/opt/homebrew/opt/libxcrypt/include"
+            ]
         }
     ],
     "version": 4

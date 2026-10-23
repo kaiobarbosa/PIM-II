@@ -1,1 +1,0 @@
-uardas as routes e o middleware. Ou seja, responsavel por resgatar a requisição do front, ser o porteiro que vai analisar qual foi a requisição e encaminhar para o use_case correto

@@ -1,3 +1,4 @@
+#include "backend/src/presentation/director_presentation.h"
 #include <stdio.h>
 #include <ncurses.h>
 #include <string.h>
@@ -112,6 +113,41 @@ static int read_action(int screen_height, int screen_width) {
     }
 }
 
+static void draw_form(int screen_width, int form_width, int form_left,
+                      int first_field_y, const char *title) {
+    clear();
+    box(stdscr, 0, 0);
+
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvprintw(2, (screen_width - (int) strlen(title)) / 2, "%s", title);
+    attroff(COLOR_PAIR(1) | A_BOLD);
+
+    attron(COLOR_PAIR(2));
+    mvhline(4, 2, ACS_HLINE, screen_width - 4);
+    mvprintw(5, form_left, "INFORMACOES DE ACESSO");
+    attroff(COLOR_PAIR(2));
+
+    attron(A_BOLD);
+    mvprintw(first_field_y, form_left, "Nome");
+    mvprintw(first_field_y + 3, form_left, "Sobrenome");
+    mvprintw(first_field_y + 6, form_left, "Codigo interno");
+    mvprintw(first_field_y + 9, form_left, "Email");
+    mvprintw(first_field_y + 12, form_left, "Senha");
+    attroff(A_BOLD);
+
+    attron(COLOR_PAIR(1));
+    for (int field = 0; field < 5; field++) {
+        int field_y = first_field_y + 1 + (field * 3);
+
+        mvaddch(field_y, form_left, '[');
+        mvhline(field_y, form_left + 1, ACS_HLINE, form_width - 3);
+        mvaddch(field_y, form_left + form_width - 2, ']');
+    }
+    attroff(COLOR_PAIR(1));
+
+    refresh();
+}
+
 void create_account_screen() {
     char director_name[51] = "";
     char director_last_name[51] = "";
@@ -149,51 +185,43 @@ void create_account_screen() {
     form_left = (screen_width - form_width) / 2;
     first_field_y = 7;
 
-    box(stdscr, 0, 0);
+    while (1) {
+        draw_form(screen_width, form_width, form_left, first_field_y, title);
 
-    attron(COLOR_PAIR(1) | A_BOLD);
-    mvprintw(2, (screen_width - (int) strlen(title)) / 2, "%s", title);
-    attroff(COLOR_PAIR(1) | A_BOLD);
+        read_field(first_field_y + 1, form_left + 2, form_width - 4,
+                   director_name, sizeof(director_name), 0);
+        read_field(first_field_y + 4, form_left + 2, form_width - 4,
+                   director_last_name, sizeof(director_last_name), 0);
+        read_field(first_field_y + 7, form_left + 2, form_width - 4,
+                   director_internal_code, sizeof(director_internal_code), 0);
+        read_field(first_field_y + 10, form_left + 2, form_width - 4,
+                   director_email, sizeof(director_email), 0);
+        read_field(first_field_y + 13, form_left + 2, form_width - 4,
+                   director_password, sizeof(director_password), 1);
 
-    attron(COLOR_PAIR(2));
-    mvhline(4, 2, ACS_HLINE, screen_width - 4);
-    mvprintw(5, form_left, "INFORMACOES DE ACESSO");
-    attroff(COLOR_PAIR(2));
+        if (read_action(screen_height, screen_width) == 1) {
+            endwin();
+            return;
+        }
 
-    attron(A_BOLD);
-    mvprintw(first_field_y, form_left, "Nome");
-    mvprintw(first_field_y + 3, form_left, "Sobrenome");
-    mvprintw(first_field_y + 6, form_left, "Codigo interno");
-    mvprintw(first_field_y + 9, form_left, "Email");
-    mvprintw(first_field_y + 12, form_left, "Senha");
-    attroff(A_BOLD);
+        if (register_new_director(director_name, director_last_name,
+                                  director_internal_code, director_email,
+                                  director_password) == 0) {
+            break;
+        }
 
-    attron(COLOR_PAIR(1));
-    for (int field = 0; field < 5; field++) {
-        int field_y = first_field_y + 1 + (field * 3);
+        attron(COLOR_PAIR(1) | A_BOLD);
+        mvprintw(screen_height - 3, (screen_width - 48) / 2,
+                 "Erro ao registrar novo diretor.");
+        attroff(COLOR_PAIR(1) | A_BOLD);
+        refresh();
+        getch();
 
-        mvaddch(field_y, form_left, '[');
-        mvhline(field_y, form_left + 1, ACS_HLINE, form_width - 3);
-        mvaddch(field_y, form_left + form_width - 2, ']');
-    }
-    attroff(COLOR_PAIR(1));
-
-    refresh();
-
-    read_field(first_field_y + 1, form_left + 2, form_width - 4,
-               director_name, sizeof(director_name), 0);
-    read_field(first_field_y + 4, form_left + 2, form_width - 4,
-               director_last_name, sizeof(director_last_name), 0);
-    read_field(first_field_y + 7, form_left + 2, form_width - 4,
-               director_internal_code, sizeof(director_internal_code), 0);
-    read_field(first_field_y + 10, form_left + 2, form_width - 4,
-               director_email, sizeof(director_email), 0);
-    read_field(first_field_y + 13, form_left + 2, form_width - 4,
-               director_password, sizeof(director_password), 1);
-
-    if (read_action(screen_height, screen_width) == 1) {
-        endwin();
-        return;
+        director_name[0] = '\0';
+        director_last_name[0] = '\0';
+        director_internal_code[0] = '\0';
+        director_email[0] = '\0';
+        director_password[0] = '\0';
     }
 
     endwin();

@@ -1,1 +1,0 @@
- realiza funções que não foram criadas pelo autor do projeto
