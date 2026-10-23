@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "backend/config/database_connector.h"
-#include "backend/src/infrasctructure/repository/query_executor.h"
+#include "backend/src/infrastructure/repository/query_executor.h"
 #include "backend/src/use_case/director_use_case.h"
 #include "frontend/screens/create_account.h"
 

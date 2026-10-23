@@ -1,6 +1,8 @@
-#include "backend/src/infrasctructure/repository/director_repository.h"
+#include "backend/src/infrastructure/repository/director_repository.h"
 #include "backend/src/domain/director_domain.h"
 #include "backend/src/utils/generate_id.h"
+#include "backend/src/domain/validation/password_crypt.h" 
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -30,6 +32,19 @@ int create_director(char name_director[], char last_name_director[], char intern
         return -1; 
     }
 
-    return 0;
+    char password_hashed[64]; 
 
+    if (password_hash(password_director, password_hashed, sizeof(password_hashed)) == 0) {
+        fprintf(stderr, "Erro ao criptografar a senha do diretor.\n");
+        return -1;
+    }
+
+    if (create_new_director(id_director, name_director, last_name_director, internal_code_director, email_director, password_hashed) == -1) {
+        fprintf(stderr, "Erro ao criar o diretor no banco de dados.\n");
+        return -1;
+    }else {
+        printf("Diretor criado com sucesso!\n");
+    }
+
+    return 0;
 }
