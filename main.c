@@ -4,6 +4,7 @@
 #include "backend/src/infrastructure/repository/query_executor.h"
 #include "backend/src/use_case/director_use_case.h"
 #include "frontend/screens/create_account.h"
+#include "frontend/screens/login_account.h"
 
 int main() {
     
@@ -19,10 +20,12 @@ int main() {
         
     } while (first_use == -1);
 
-    if(first_use == 1) 
+    if (first_use == 1) {
         create_account_screen();
-    else
-        printf("Fluxo de login normal iniciado.\n");
+        login_account_screen();
+    } else {
+        login_account_screen();
+    }
     
     return 0;
 }

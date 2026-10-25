@@ -15,6 +15,7 @@ SRC = main.c \
       backend/src/infrastructure/external_services/bcrypt/crypt_blowfish.c\
       backend/src/utils/generate_id.c\
       backend/src/domain/validation/password_crypt.c\
+      frontend/screens/login_account.c\
 
 all: $(TARGET)
 
