@@ -16,6 +16,10 @@ SRC = main.c \
       backend/src/utils/generate_id.c\
       backend/src/domain/validation/password_crypt.c\
       frontend/screens/login_account.c\
+      backend/src/presentation/login_presentation.c\
+      backend/src/use_case/login_use_case.c\
+      backend/src/utils/verify_user_informations.c\
+      backend/src/infrastructure/repository/login_repository.c\
 
 all: $(TARGET)
 

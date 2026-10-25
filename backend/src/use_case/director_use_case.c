@@ -2,6 +2,7 @@
 #include "backend/src/domain/director_domain.h"
 #include "backend/src/utils/generate_id.h"
 #include "backend/src/domain/validation/password_crypt.h" 
+#include "backend/src/utils/verify_user_informations.h"
 
 #include <stdio.h>
 #include <stdlib.h>

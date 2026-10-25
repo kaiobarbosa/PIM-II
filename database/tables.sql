@@ -166,6 +166,34 @@ foreign key (id_atendente) references atendente (id_atendente),
 foreign key (id_filial) references filial (id_filial)
 );
 
+CREATE VIEW vw_login_usuarios AS
+SELECT 
+    id_diretor AS id_usuario, 
+    email_diretor AS email, 
+    senha_diretor AS senha, 
+    'diretor' AS perfil 
+FROM diretor
+UNION ALL
+SELECT 
+    id_gerente, 
+    email_gerente, 
+    senha_gerente, 
+    'gerente' 
+FROM gerente
+UNION ALL
+SELECT 
+    id_farmaceutico, 
+    email_farmaceutico, 
+    senha_farmaceutico, 
+    'farmaceutico' 
+FROM farmaceutico
+UNION ALL
+SELECT 
+    id_atendente, 
+    email_atendente, 
+    senha_atendente, 
+    'atendente' 
+FROM atendente;
 
 # ----------------------------------------------------------------------------------------------------
 # ------------------------- TESTES TESTE TESTE TESTE TESTE TESTE TESTE TESTE -------------------------
@@ -178,6 +206,8 @@ foreign key (id_filial) references filial (id_filial)
 
 
 #select * from diretor;
+
+#SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
 
 #delete from diretor where id_diretor = 'Y09BAR';
 
