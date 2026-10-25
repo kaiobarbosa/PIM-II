@@ -2,7 +2,7 @@
 
 Sistema de consulta e gerenciamento de estoque para uma rede farmacêutica com múltiplas filiais. A proposta é centralizar as informações dos produtos e permitir que os usuários consultem a disponibilidade de um medicamento em toda a rede, inclusive quando ele não estiver disponível na filial atual.
 
-> **Status:** em desenvolvimento.
+> **Status:** em desenvolvimento. O fluxo inicial de cadastro do diretor já está implementado como protótipo funcional.
 
 ## Sobre o projeto
 
@@ -78,31 +78,107 @@ O diretório `backend` segue a separação entre configurações e regras da apl
 │   │   └── database_connector.h
 │   └── src/
 │       ├── domain/
-│       ├── infrasctructure/
+│       ├── infrastructure/
 │       │   ├── external_services/
+│       │   │   └── bcrypt/
 │       │   └── repository/
 │       ├── presentation/
-│       └── use_case/
+│       ├── use_case/
+│       ├── utils/
+│       └── validation/
+├── frontend/
+│   └── screens/
 ├── database/
 │   ├── database.md
 │   └── tables.sql
 └── documentation/
 ```
 
-> O nome `infrasctructure` mantém a grafia do diretório existente no repositório.
-
 Responsabilidades das camadas:
 
 - `config`: configurações da aplicação e da conexão com o banco;
 - `domain`: entidades e regras de validação;
-- `infrasctructure/repository`: acesso direto e exclusivo ao banco de dados;
-- `infrasctructure/external_services`: integração com serviços ou bibliotecas externas;
+- `infrastructure/repository`: acesso direto e exclusivo ao banco de dados;
+- `infrastructure/external_services`: integração com serviços ou bibliotecas externas;
 - `presentation`: rotas, entrada das requisições e middleware de autenticação/autorização;
 - `use_case`: execução das regras de negócio a partir de uma solicitação.
 
+## Cadastro do diretor — implementado
+
+O primeiro fluxo funcional do projeto é o cadastro inicial do diretor da rede farmacêutica. Ao iniciar o programa, o sistema consulta o banco para verificar se já existe algum diretor. Quando nenhum diretor é encontrado, a tela de cadastro é exibida; quando já existe um diretor, o programa informa que deve iniciar o fluxo normal de login.
+
+O fluxo implementado é:
+
+```text
+main.c
+  └── check_first_use()
+        ├── check_director_exists()       → consulta COUNT(*) no MySQL
+        ├── nenhum diretor                 → create_account_screen()
+        │     └── register_new_director()
+        │           └── create_director()
+        │                 ├── valida campos, código e e-mail
+        │                 ├── gera ID alfanumérico
+        │                 ├── gera hash bcrypt da senha
+        │                 └── create_new_director() → INSERT no MySQL
+        └── diretor existente              → fluxo de login (a implementar)
+```
+
+### Funcionalidades já implementadas
+
+- conexão com o banco MySQL `pharma_database`;
+- verificação de primeiro uso por meio da quantidade de diretores cadastrados;
+- tentativa de conexão novamente após cinco segundos quando o banco está indisponível;
+- tela de cadastro em terminal com `ncurses`;
+- validação do tamanho mínimo do terminal: 70 colunas por 24 linhas;
+- formulário com nome, sobrenome, código interno, e-mail e senha;
+- ocultação da senha durante a digitação;
+- suporte a navegação entre os botões de cadastro e cancelamento;
+- validação de campos obrigatórios;
+- validação do código interno com seis caracteres;
+- validação básica do formato do e-mail;
+- geração de identificador alfanumérico de seis caracteres;
+- geração de salt e hash da senha com bcrypt, usando custo 12;
+- persistência do diretor na tabela `diretor`;
+- mensagens de erro e repetição do formulário quando o cadastro falha;
+- encerramento correto da conexão MySQL e da sessão `ncurses`.
+
+### Arquivos envolvidos no cadastro
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| [`main.c`](main.c) | Controla o início da aplicação, verifica o primeiro uso e direciona o fluxo para o cadastro inicial ou para o login futuro. |
+| [`frontend/screens/create_account.c`](frontend/screens/create_account.c) | Implementa a interface de terminal do cadastro, leitura dos campos, máscara da senha, navegação e mensagens de erro. |
+| [`frontend/screens/create_account.h`](frontend/screens/create_account.h) | Expõe `create_account_screen` para o ponto de entrada da aplicação. |
+| [`backend/src/presentation/director_presentation.c`](backend/src/presentation/director_presentation.c) | Faz a ponte entre a tela e o caso de uso, encaminhando os dados para o cadastro. |
+| [`backend/src/presentation/director_presentation.h`](backend/src/presentation/director_presentation.h) | Declara `register_new_director`. |
+| [`backend/src/use_case/director_use_case.c`](backend/src/use_case/director_use_case.c) | Orquestra o caso de uso: valida os dados, gera o ID, criptografa a senha e solicita a persistência. |
+| [`backend/src/use_case/director_use_case.h`](backend/src/use_case/director_use_case.h) | Declara `check_first_use` e `create_director`. |
+| [`backend/src/domain/director_domain.c`](backend/src/domain/director_domain.c) | Contém as regras de domínio para campos obrigatórios, código interno e e-mail. |
+| [`backend/src/domain/director_domain.h`](backend/src/domain/director_domain.h) | Declara as validações do domínio do diretor. |
+| [`backend/src/infrastructure/repository/director_repository.c`](backend/src/infrastructure/repository/director_repository.c) | Consulta a existência de diretores e insere o novo diretor no MySQL. |
+| [`backend/src/infrastructure/repository/director_repository.h`](backend/src/infrastructure/repository/director_repository.h) | Declara as operações de persistência do diretor. |
+| [`backend/src/domain/validation/password_crypt.c`](backend/src/domain/validation/password_crypt.c) | Encapsula a geração e a verificação de hashes bcrypt. |
+| [`backend/src/domain/validation/password_crypt.h`](backend/src/domain/validation/password_crypt.h) | Declara `password_hash` e `password_verify`. |
+| [`backend/src/utils/generate_id.c`](backend/src/utils/generate_id.c) | Gera identificadores alfanuméricos de seis caracteres. |
+| [`backend/src/utils/generate_id.h`](backend/src/utils/generate_id.h) | Declara `generate_id`. |
+| [`backend/src/infrastructure/external_services/bcrypt/bcrypt.c`](backend/src/infrastructure/external_services/bcrypt/bcrypt.c) | Implementa a camada bcrypt utilizada para gerar salt, criar hash e verificar senhas. |
+| [`backend/src/infrastructure/external_services/bcrypt/crypt_blowfish.c`](backend/src/infrastructure/external_services/bcrypt/crypt_blowfish.c) | Implementação interna do algoritmo Blowfish usada pelo bcrypt. |
+| [`backend/src/infrastructure/external_services/bcrypt/*.h`](backend/src/infrastructure/external_services/bcrypt/bcrypt.h) | Declarações e constantes da implementação bcrypt/Blowfish. |
+
+### Infraestrutura de suporte
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| [`backend/config/database_connector.c`](backend/config/database_connector.c) | Inicializa o cliente MySQL e abre conexões com o banco. |
+| [`backend/config/database_connector.h`](backend/config/database_connector.h) | Declara `connect_to_database` e disponibiliza o tipo `MYSQL`. |
+| [`backend/src/infrastructure/repository/query_executor.c`](backend/src/infrastructure/repository/query_executor.c) | Executa consultas genéricas e imprime resultados ou linhas afetadas. |
+| [`backend/src/infrastructure/repository/query_executor.h`](backend/src/infrastructure/repository/query_executor.h) | Declara `execute_query`. |
+
+O repositório específico do diretor foi separado do executor genérico: `director_repository.c` conhece as consultas necessárias para verificar e inserir diretores, enquanto `query_executor.c` permanece como utilitário geral de consultas.
+
 ## Arquivos de código-fonte
 
-Em C, cada arquivo `.c` normalmente contém a implementação de uma parte do sistema, enquanto cada arquivo `.h` apresenta a interface pública que pode ser utilizada por outros arquivos. Essa separação evita a duplicação de código e permite que os módulos dependam de contratos bem definidos.
+Em C, cada arquivo `.c` contém a implementação de uma parte do sistema, enquanto cada arquivo `.h` apresenta a interface pública que pode ser utilizada por outros arquivos. Essa separação evita a duplicação de código e permite que os módulos dependam de contratos bem definidos. Os arquivos do fluxo de cadastro do diretor estão relacionados na seção [Cadastro do diretor — implementado](#cadastro-do-diretor--implementado).
 
 ## Por que usamos um Makefile?
 
@@ -137,7 +213,18 @@ CC      = gcc
 CFLAGS  = -Wall -Wextra -g -I/opt/homebrew/opt/mysql-client/include
 LDFLAGS = -L/opt/homebrew/opt/mysql-client/lib -lmysqlclient -lncurses
 TARGET  = pharmaStock
-SRC     = main.c backend/config/database_connector.c backend/src/infrasctructure/repository/query_executor.c
+SRC     = main.c \
+          backend/config/database_connector.c \
+          backend/src/infrastructure/repository/query_executor.c \
+          backend/src/use_case/director_use_case.c \
+          backend/src/infrastructure/repository/director_repository.c \
+          frontend/screens/create_account.c \
+          backend/src/presentation/director_presentation.c \
+          backend/src/domain/director_domain.c \
+          backend/src/infrastructure/external_services/bcrypt/bcrypt.c \
+          backend/src/infrastructure/external_services/bcrypt/crypt_blowfish.c \
+          backend/src/utils/generate_id.c \
+          backend/src/domain/validation/password_crypt.c
 ```
 
 - `CC` define o compilador;
@@ -153,7 +240,16 @@ gcc -Wall -Wextra -g \
   -I/opt/homebrew/opt/mysql-client/include \
   main.c \
   backend/config/database_connector.c \
-  backend/src/infrasctructure/repository/query_executor.c \
+  backend/src/infrastructure/repository/query_executor.c \
+  backend/src/use_case/director_use_case.c \
+  backend/src/infrastructure/repository/director_repository.c \
+  frontend/screens/create_account.c \
+  backend/src/presentation/director_presentation.c \
+  backend/src/domain/director_domain.c \
+  backend/src/infrastructure/external_services/bcrypt/bcrypt.c \
+  backend/src/infrastructure/external_services/bcrypt/crypt_blowfish.c \
+  backend/src/utils/generate_id.c \
+  backend/src/domain/validation/password_crypt.c \
   -o pharmaStock \
   -L/opt/homebrew/opt/mysql-client/lib \
   -lmysqlclient -lncurses
@@ -165,13 +261,14 @@ O `-I` informa onde encontrar headers, como `mysql/mysql.h`. O `-L` informa onde
 
 Todo novo arquivo `.c` precisa ser adicionado à variável `SRC` do Makefile para participar da compilação. Colocar o arquivo dentro de `src` não é suficiente: o compilador só recebe os arquivos explicitamente listados em `SRC`.
 
-Por exemplo, para incluir `backend/src/use_case/check_first_use.c`, a variável deve ficar semelhante a:
+O cadastro do diretor já está incluído no `SRC`. Para adicionar outro módulo, acrescente seu caminho à lista. Por exemplo:
 
 ```make
 SRC = main.c \
       backend/config/database_connector.c \
-      backend/src/infrasctructure/repository/query_executor.c \
-      backend/src/use_case/check_first_use.c
+      backend/src/infrastructure/repository/query_executor.c \
+      backend/src/use_case/director_use_case.c \
+      backend/src/novo_modulo/novo_modulo.c
 ```
 
 Ao criar um novo módulo, siga este fluxo:
@@ -187,6 +284,8 @@ Não inclua um arquivo `.c` dentro de outro arquivo `.c`. O correto é incluir o
 ## Banco de dados
 
 O banco utilizado é o MySQL, com o nome `pharma_database`. O script [`database/tables.sql`](database/tables.sql) contém a criação inicial do banco e das tabelas, enquanto [`database/database.md`](database/database.md) descreve a intenção das entidades.
+
+O cadastro do diretor utiliza a tabela `diretor`, que possui os campos `id_diretor`, `nome_diretor`, `sobrenome_diretor`, `codigo_interno`, `email_diretor` e `senha_diretor`. O ID é gerado pela aplicação, o e-mail é único e a senha armazenada é o hash bcrypt, não o texto original.
 
 Antes de executar o script, é necessário ter um servidor MySQL disponível e selecionar o banco correto. O esquema ainda está em desenvolvimento e deverá ser revisado conforme as chaves estrangeiras e as tabelas de produtos forem finalizadas.
 
@@ -224,11 +323,12 @@ O comando `make` gera o executável `pharmaStock`. Dependendo da configuração 
 
 ## Próximas etapas
 
+- implementar o login e o fluxo normal quando já existe um diretor;
+- substituir as credenciais MySQL fixas por variáveis de ambiente ou configuração segura;
+- trocar a montagem direta de SQL por consultas parametrizadas/prepared statements;
+- inicializar a semente do gerador de IDs e tratar colisões de identificadores;
 - finalizar e validar o modelo entidade-relacionamento;
-- corrigir e completar o script SQL e suas dependências entre tabelas;
-- definir a configuração segura das credenciais do MySQL;
-- incluir os casos de uso no `SRC` conforme forem implementados;
-- desenvolver autenticação e controle de permissões;
+- implementar cadastro e autenticação dos demais perfis;
 - implementar cadastro, consulta e movimentação de produtos;
 - adicionar importação de estoque por CSV;
-- criar testes e revisar a documentação conforme as funcionalidades forem concluídas.
+- criar testes automatizados para validações, bcrypt, casos de uso e repositórios.
