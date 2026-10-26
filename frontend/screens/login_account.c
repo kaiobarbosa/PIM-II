@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "backend/src/presentation/login_presentation.h"
+#include "frontend/screens/home_screen.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
@@ -149,14 +150,13 @@ static int read_login_action(int screen_height, int screen_width) {
 }
 
 void login_account_screen() {
-    char user_email[101] = "";       // Mudamos de director para user
+    char user_email[101] = "";       
     char user_password[51] = "";
     int screen_height;
     int screen_width;
     int form_width;
     int form_left;
-    const char *title = "FARMASTOCK | LOGIN"; // Título universal
-
+    const char *title = "FARMASTOCK | LOGIN";
     initscr();
     noecho();
     curs_set(0);
@@ -166,7 +166,7 @@ void login_account_screen() {
     use_default_colors();
     init_pair(1, COLOR_CYAN, -1);
     init_pair(2, COLOR_GREEN, -1);
-    init_pair(3, COLOR_RED, -1); // Cor para mensagens de erro
+    init_pair(3, COLOR_RED, -1); 
 
     while (!terminal_is_large_enough()) {
         show_resize_message();
@@ -177,7 +177,6 @@ void login_account_screen() {
     form_width = 66;
     form_left = (screen_width - form_width) / 2;
 
-    // 2. Loop para permitir tentativas em caso de erro
     while (1) {
         draw_login_form(screen_width, form_width, form_left, title);
 
@@ -189,15 +188,12 @@ void login_account_screen() {
         int action = read_login_action(screen_height, screen_width);
 
         if (action == 1) { 
-            // Clicou em CANCELAR ou apertou ESC
             break;
         }
 
-        // 3. Clicou em ENTRAR: Conecta ao backend!
         int login_result = login_presentation(user_email, user_password);
 
         if (login_result == 1) {
-            // Sucesso!
             clear();
             attron(COLOR_PAIR(2) | A_BOLD);
             mvprintw(screen_height / 2, (screen_width - 16) / 2, "Acesso Liberado!");
@@ -205,18 +201,18 @@ void login_account_screen() {
             refresh();
             getch();
             
-            // Aqui futuramente você vai redirecionar para o Menu Principal
+            home_screen(); 
+            
             break; 
             
         } else {
-            // Falha (Email não existe ou Senha errada)
+            
             attron(COLOR_PAIR(3) | A_BOLD);
             mvprintw(screen_height - 5, (screen_width - 28) / 2, "E-mail ou senha incorretos.");
             attroff(COLOR_PAIR(3) | A_BOLD);
             refresh();
-            getch(); // Pausa para o usuário ler o erro
+            getch();
 
-            // Limpa as variáveis para ele digitar novamente
             user_email[0] = '\0';
             user_password[0] = '\0';
         }
