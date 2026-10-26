@@ -20,6 +20,7 @@ SRC = main.c \
       backend/src/use_case/login_use_case.c\
       backend/src/utils/verify_user_informations.c\
       backend/src/infrastructure/repository/login_repository.c\
+      frontend/screens/home_screen.c\
 
 all: $(TARGET)
 
