@@ -39,13 +39,6 @@ foreign key (id_endereco) references endereco(id_endereco),
 foreign key (id_diretor) references diretor(id_diretor)
 );
 
-create table filial_endereco (
-id_filial char(6) not null,
-id_endereco char(6) not null,
-foreign key (id_filial) references filial (id_filial),
-foreign key (id_endereco) references endereco (id_endereco)
-);
-
 CREATE TABLE equipamentos (
     id_equipamentos char(6) unique primary key not null,
     modelo varchar(50) not null,

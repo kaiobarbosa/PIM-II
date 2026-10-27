@@ -6,7 +6,8 @@
 #include "backend/src/domain/validation/password_crypt.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
 
-int login_use_case(char *email, char *password) {
+// Adicionamos os ponteiros logged_id e logged_profile para enviar ao frontend
+int login_use_case(char *email, char *password, int *logged_id, char *logged_profile) {
 
     if (verify_email_format(email) == 0) {
         fprintf(stderr, "Formato de email inválido.\n");
@@ -14,9 +15,9 @@ int login_use_case(char *email, char *password) {
     }
 
     char hash_armazenado[64] = ""; 
-    char perfil_usuario[20] = "";  
-
-    int usuario_encontrado = get_user_by_email(email, hash_armazenado, perfil_usuario);
+    
+    // Passamos os ponteiros recebidos diretamente para o repositório preencher
+    int usuario_encontrado = get_user_by_email(email, hash_armazenado, logged_profile, logged_id);
 
     if (usuario_encontrado == 0) {
         fprintf(stderr, "Usuário não encontrado.\n");
@@ -24,14 +25,10 @@ int login_use_case(char *email, char *password) {
     }
 
     if (password_verify(password, hash_armazenado) == 1) {
-        
-        printf("Acesso liberado! Autenticado como: %s\n", perfil_usuario);
+        printf("Acesso liberado! Autenticado como: %s (ID: %d)\n", logged_profile, *logged_id);
         return 1; 
-
     } else {
-        
         fprintf(stderr, "Senha incorreta.\n");
         return 0; 
-        
     }
 }
