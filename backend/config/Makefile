@@ -23,6 +23,8 @@ SRC = main.c \
       frontend/screens/home_screen.c\
       frontend/components/sidebar.c\
       frontend/screens/employees_screen.c\
+      backend/src/presentation/manager_presentation.c\
+      backend/src/use_case/manager_use_case.c\
 
 all: $(TARGET)
 
