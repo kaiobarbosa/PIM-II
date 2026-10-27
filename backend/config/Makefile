@@ -26,6 +26,10 @@ SRC = main.c \
       backend/src/presentation/manager_presentation.c\
       backend/src/use_case/manager_use_case.c\
       frontend/screens/branch_screen.c\
+      backend/src/presentation/branch_presentation.c\
+      backend/src/use_case/branch_use_case.c\
+      backend/src/domain/branch_domain.c\
+      backend/src/infrastructure/repository/branch_repository.c\
 
 all: $(TARGET)
 

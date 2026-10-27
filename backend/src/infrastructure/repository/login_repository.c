@@ -1,10 +1,10 @@
 #include "backend/src/infrastructure/repository/login_repository.h"
 #include "backend/config/database_connector.h"
 #include <stdio.h>
-#include <stdlib.h> // Necessário para a função atoi()
 #include <string.h>
 
-int get_user_by_email(const char *email, char *hash_armazenado, char *perfil_usuario, int *id_usuario) {
+int get_user_by_email(const char *email, char *hash_armazenado,
+                      char *perfil_usuario, char id_usuario[7]) {
     MYSQL *conn = connect_to_database();
     if (conn == NULL) {
         fprintf(stderr, "Erro ao conectar ao banco de dados no login.\n");
@@ -31,9 +31,8 @@ int get_user_by_email(const char *email, char *hash_armazenado, char *perfil_usu
     int encontrou = 0;
 
     if (row) {
-        // A ordem agora é: row[0] = id_usuario, row[1] = senha, row[2] = perfil
         if (row[0] != NULL) {
-            *id_usuario = atoi(row[0]); // Converte o ID que vem como texto para inteiro
+            snprintf(id_usuario, 7, "%s", row[0]);
         }
         if (row[1] != NULL) {
             strcpy(hash_armazenado, row[1]);

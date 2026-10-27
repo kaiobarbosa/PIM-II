@@ -197,10 +197,14 @@ FROM atendente;
 #INSERT INTO diretor (id_diretor, nome_diretor ,sobrenome_diretor, codigo_interno, email_diretor, senha_diretor) 
 #VALUES ('Y09BAR', 'Kaio Eduardo', 'Braga Barbosa', '000001', 'kaio.braga@gmail', '123123');
 
+#select * from filial;
+#select * from endereco;
 
 #select * from diretor;
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
+
+#delete from endereco where id_endereco = 'Y09BAR';
 
 #delete from diretor where id_diretor = 'Y09BAR';
 

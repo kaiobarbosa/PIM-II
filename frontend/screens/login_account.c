@@ -152,7 +152,7 @@ static int read_login_action(int screen_height, int screen_width) {
 void login_account_screen() {
     char user_email[101] = "";       
     char user_password[51] = "";
-    int session_user_id = 0;
+    char session_user_id[7] = "";
     char session_user_profile[20] = "";
     int screen_height;
     int screen_width;
@@ -193,7 +193,9 @@ void login_account_screen() {
             break;
         }
 
-        int login_result = login_presentation(user_email, user_password, &session_user_id, session_user_profile);
+        int login_result = login_presentation(user_email, user_password,
+                                             session_user_id,
+                                             session_user_profile);
 
         if (login_result == 1) {
             clear();

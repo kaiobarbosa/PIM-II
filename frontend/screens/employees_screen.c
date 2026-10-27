@@ -339,7 +339,7 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
     refresh();
 }
 
-int employee_screen(int user_id, char *user_profile) {
+int employee_screen(char user_id[7], char *user_profile) {
     Employee employees[MAX_EMPLOYEES] = {
         {"Ana", "Souza", "FUN-001", "Filial Centro", "", "ana@farmastock.com", "senha123", ROLE_MANAGER, 1},
         {"Carlos", "Lima", "FUN-002", "Filial Centro", "CRF-12345", "carlos@farmastock.com", "senha123", ROLE_PHARMACIST, 1},
@@ -358,6 +358,9 @@ int employee_screen(int user_id, char *user_profile) {
     int character;
     Employee form_employee;
     EmployeeScreen screen = SCREEN_LIST;
+
+    (void) user_id;
+    (void) user_profile;
 
     // --- VARIÁVEIS DA SIDEBAR ---
     int sidebar_focus = 2; // Começa apontando para "Funcionários"

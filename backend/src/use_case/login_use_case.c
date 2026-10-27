@@ -7,7 +7,8 @@
 #include "backend/src/infrastructure/repository/login_repository.h"
 
 // Adicionamos os ponteiros logged_id e logged_profile para enviar ao frontend
-int login_use_case(char *email, char *password, int *logged_id, char *logged_profile) {
+int login_use_case(char *email, char *password, char logged_id[7],
+                   char *logged_profile) {
 
     if (verify_email_format(email) == 0) {
         fprintf(stderr, "Formato de email inválido.\n");
@@ -25,7 +26,8 @@ int login_use_case(char *email, char *password, int *logged_id, char *logged_pro
     }
 
     if (password_verify(password, hash_armazenado) == 1) {
-        printf("Acesso liberado! Autenticado como: %s (ID: %d)\n", logged_profile, *logged_id);
+        printf("Acesso liberado! Autenticado como: %s (ID: %s)\n",
+               logged_profile, logged_id);
         return 1; 
     } else {
         fprintf(stderr, "Senha incorreta.\n");

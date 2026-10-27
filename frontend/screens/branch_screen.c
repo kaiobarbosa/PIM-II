@@ -5,6 +5,7 @@
 #include "frontend/components/sidebar.h"
 #include "frontend/screens/branch_screen.h"
 #include "frontend/screens/home_screen.h"
+#include "backend/src/presentation/branch_presentation.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
@@ -253,7 +254,8 @@ static void draw_branch_screen(int screen_height, int screen_width,
                               Branch *form_branch, int form_focus,
                               int form_editing, const BranchField fields[],
                               int field_count, int sidebar_focus,
-                              int is_in_sidebar) {
+                              int is_in_sidebar, const char *status_message,
+                              int status_is_error) {
     erase();
     box(stdscr, 0, 0);
     mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
@@ -278,6 +280,13 @@ static void draw_branch_screen(int screen_height, int screen_width,
                     "[ SIM ]", "[ NAO ]", confirmation_focus);
     }
 
+    if (status_message[0] != '\0') {
+        attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+        mvaddnstr(screen_height - 3, hero_left + 4, status_message,
+                  hero_width - 8);
+        attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+    }
+
     attron(A_DIM);
     if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
         mvaddnstr(screen_height - 2, 2,
@@ -294,7 +303,7 @@ static void draw_branch_screen(int screen_height, int screen_width,
     refresh();
 }
 
-int branch_screen(int user_id, char *user_profile) {
+int branch_screen(char user_id[7], char *user_profile) {
     Branch branches[MAX_BRANCHES] = {
         {"001", "01001-000", "Praca da Se", "100", "Loja 1", "Se", "Sao Paulo", "SP", 1},
         {"002", "20040-002", "Rua da Assembleia", "25", "", "Centro", "Rio de Janeiro", "RJ", 1},
@@ -315,6 +324,10 @@ int branch_screen(int user_id, char *user_profile) {
     int character;
     Branch form_branch;
     BranchScreen screen = SCREEN_LIST;
+    char status_message[80] = "";
+    int status_is_error = 0;
+
+    (void) user_profile;
 
     getmaxyx(stdscr, screen_height, screen_width);
     if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
@@ -342,7 +355,8 @@ int branch_screen(int user_id, char *user_profile) {
                            branches, branch_count, branch_focus, list_scroll,
                            action_focus, confirmation_focus, &form_branch,
                            form_focus, form_editing, fields, field_count,
-                           sidebar_focus, is_in_sidebar);
+                           sidebar_focus, is_in_sidebar, status_message,
+                           status_is_error);
 
         character = getch();
         character_is_confirm = character == '\n' || character == KEY_ENTER;
@@ -380,6 +394,8 @@ int branch_screen(int user_id, char *user_profile) {
                 branch_focus = branch_focus == 0 ? last_focus : 0;
             } else if (character_is_confirm && branch_focus == 0) {
                 clear_branch(&form_branch);
+                status_message[0] = '\0';
+                status_is_error = 0;
                 form_focus = 0;
                 form_editing = 0;
                 screen = SCREEN_NEW_FORM;
@@ -473,19 +489,35 @@ int branch_screen(int user_id, char *user_profile) {
                         branches[selected_branch] = form_branch;
                         screen = SCREEN_LIST;
                     }
-                } else if (is_new && branch_count < MAX_BRANCHES) {
-                    snprintf(form_branch.id, sizeof(form_branch.id), "%03d",
-                             branch_count + 1);
-                    branches[branch_count++] = form_branch;
-                    branch_focus = branch_count;
-                    {
-                        int visible_count =
-                            (screen_height - divider_y - 9) / 2;
-                        if (branch_focus > list_scroll + visible_count) {
-                            list_scroll = branch_focus - visible_count;
-                        }
+                } else if (is_new) {
+                    int registration_result;
+
+                    if (user_id == NULL || user_id[0] == '\0') {
+                        registration_result = -1;
+                    } else {
+                        registration_result = register_new_branch(
+                            user_id,
+                            form_branch.postal_code,
+                            form_branch.street,
+                            form_branch.number,
+                            form_branch.complement,
+                            form_branch.neighborhood,
+                            form_branch.city,
+                            form_branch.state);
                     }
-                    screen = SCREEN_LIST;
+
+                    if (registration_result == 0) {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Filial cadastrada com sucesso.");
+                        status_is_error = 0;
+                        clear_branch(&form_branch);
+                        branch_focus = 0;
+                        screen = SCREEN_LIST;
+                    } else {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Falha ao cadastrar filial. Verifique os dados e tente novamente.");
+                        status_is_error = 1;
+                    }
                 }
             } else if (character == 27) {
                 screen = SCREEN_LIST;

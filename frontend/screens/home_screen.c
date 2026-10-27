@@ -201,7 +201,7 @@ static AppScreen home_screen_view(void) {
     }
 }
 
-void home_screen(int user_id, char *user_profile) {
+void home_screen(char user_id[7], char *user_profile) {
     AppScreen current_screen = APP_SCREEN_HOME;
 
     while (current_screen != APP_SCREEN_EXIT) {
