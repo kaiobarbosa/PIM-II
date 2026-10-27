@@ -3,8 +3,9 @@
 #include <ncurses.h>
 
 void draw_sidebar(int screen_height, int sidebar_width, int focus) {
+    // 1. Adicionamos "Filiais" na lista (agora possui 5 itens)
     static const char *menu_items[] = {
-        "Home", "Produtos", "Funcionarios", "Perfil"
+        "Home", "Produtos", "Funcionarios", "Filiais", "Perfil"
     };
     int item;
 
@@ -13,7 +14,8 @@ void draw_sidebar(int screen_height, int sidebar_width, int focus) {
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvhline(4, 2, ACS_HLINE, sidebar_width - 4);
 
-    for (item = 0; item < 4; item++) {
+    // 2. Aumentamos o limite do loop para 5 (item < 5)
+    for (item = 0; item < 5; item++) {
         int row = 8 + item * 3;
         if (focus == item) {
             attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);

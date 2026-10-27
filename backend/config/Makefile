@@ -25,6 +25,7 @@ SRC = main.c \
       frontend/screens/employees_screen.c\
       backend/src/presentation/manager_presentation.c\
       backend/src/use_case/manager_use_case.c\
+      frontend/screens/branch_screen.c\
 
 all: $(TARGET)
 

@@ -185,7 +185,8 @@ static void draw_employee_list(int screen_height, int hero_left,
 }
 
 static void draw_employee_form(int screen_height, int hero_left,
-                               int hero_width, Employee *employee,
+                               int hero_width, int divider_y,
+                               Employee *employee,
                                int editing_existing, int focus,
                                int text_editing, const FormField fields[],
                                int field_count) {
@@ -193,15 +194,16 @@ static void draw_employee_form(int screen_height, int hero_left,
     int label_x = hero_left + 4;
     int value_x = hero_left + 20;
     int field_width = hero_width - 25;
-    int first_field_y = 5;
-    int buttons_y = screen_height - 6;
+    int title_y = divider_y + 1;
+    int first_field_y = divider_y + 3;
+    int buttons_y = screen_height - 4;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, hero_left + 4,
+    mvaddnstr(title_y, hero_left + 4,
               editing_existing ? "EDITAR FUNCIONARIO" : "NOVO FUNCIONARIO",
               hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvhline(3, hero_left + 2, ACS_HLINE, hero_width - 4);
+    mvhline(divider_y + 2, hero_left + 2, ACS_HLINE, hero_width - 4);
 
     for (index = 0; index < field_count; index++) {
         int y = first_field_y + index;
@@ -303,7 +305,8 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
         draw_employee_list(screen_height, hero_left, hero_width, divider_y,
                            employees, employee_count, list_focus, list_scroll);
     } else if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
-        draw_employee_form(screen_height, hero_left, hero_width, form_employee,
+        draw_employee_form(screen_height, hero_left, hero_width, divider_y,
+                           form_employee,
                            screen == SCREEN_EDIT_FORM, form_focus, form_editing,
                            form_fields, form_field_count);
     } else if (screen == SCREEN_ACTIONS) {
@@ -386,7 +389,8 @@ void employee_screen(void) {
         // 1. Desenha o conteúdo principal e o formulário
         draw_screen(screen_height, screen_width, sidebar_width, hero_left,
                     hero_width, divider_y, screen, employees, employee_count,
-                    list_focus, action_focus, list_scroll,
+                    is_in_sidebar ? -1 : list_focus,
+                    action_focus, list_scroll,
                     &form_employee, form_focus,
                     form_editing, visible_fields, visible_field_count,
                     confirmation_focus);
@@ -407,9 +411,9 @@ void employee_screen(void) {
             if (character == 27) { // ESC
                 return; // Volta para a Home
             } else if (character == KEY_UP) {
-                sidebar_focus = sidebar_focus == 0 ? 3 : sidebar_focus - 1;
+                sidebar_focus = sidebar_focus == 0 ? 4 : sidebar_focus - 1;
             } else if (character == KEY_DOWN) {
-                sidebar_focus = sidebar_focus == 3 ? 0 : sidebar_focus + 1;
+                sidebar_focus = sidebar_focus == 4 ? 0 : sidebar_focus + 1;
             } else if (character == KEY_RIGHT) {
                 is_in_sidebar = 0; // Transfere o controle do teclado para a lista de funcionários
             } else if (character == '\n' || character == KEY_ENTER) {

@@ -3,6 +3,8 @@
 
 #include "frontend/components/sidebar.h"
 #include "frontend/screens/employees_screen.h"
+#include "frontend/screens/home_screen.h"
+#include "frontend/screens/branch_screen.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
@@ -174,28 +176,29 @@ void home_screen(void) {
                 search_query[search_length] = '\0';
             }
         } else if (character == KEY_UP) {
-            focus = focus == 4 ? 3 : focus == 0 ? 3 : focus - 1;
+            focus = focus == 5 ? 4 : focus == 0 ? 4 : focus - 1;
         } else if (character == KEY_DOWN) {
-            focus = focus == 4 ? 0 : (focus + 1) % 4;
+            focus = focus == 5 ? 0 : (focus + 1) % 5;
         } else if (character == KEY_LEFT || character == KEY_RIGHT) {
-            focus = focus == 4 ? 0 : 4;
-               // ... restante do seu código de navegação (KEY_UP, KEY_DOWN, etc) ...
-
+            focus = focus == 5 ? 0 : 5;
+            
         } else if (character == '\n' || character == KEY_ENTER) {
             if (focus == 4) {
-                // Clicou na barra de busca
                 editing_search = 1;
                 search_confirmed = 0;
                 search_length = (int) strlen(search_query);
-            } else if (focus == 2) {
-                // Clicou no botão Funcionários
+            } else if (focus == 3) {
+                branch_screen();
+                clear(); 
+            //} else if (focus == 1) {
+            //    product_screen();
+            //    clear(); 
+            } else if (focus == 2) {    
                 employee_screen();
-                
-                // Força a limpar a tela quando voltar da tela de funcionários
-                // para que a home seja redesenhada corretamente no próximo giro do while(1)
                 clear(); 
             } else if (focus == 0) {
-                // Aqui você pode colocar a ação do botão Home futuramente
+                home_screen();
+                clear();
             }
         } else if (character == 27) {
             curs_set(0);
