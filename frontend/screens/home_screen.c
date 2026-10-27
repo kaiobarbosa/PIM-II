@@ -46,8 +46,8 @@ static void draw_search_section(int hero_left, int hero_width, int divider_y,
     attroff(A_DIM);
 
     if (input_width > 4) {
-        attron(COLOR_PAIR(focus == 4 ? 2 : 1) |
-               (focus == 4 ? A_BOLD | A_REVERSE : 0));
+        attron(COLOR_PAIR(focus == 5 ? 2 : 1) |
+               (focus == 5 ? A_BOLD | A_REVERSE : 0));
         mvaddch(6, input_left, '[');
         mvhline(6, input_left + 1, ACS_HLINE, input_width - 2);
         mvaddch(6, input_left + input_width - 1, ']');
@@ -57,8 +57,8 @@ static void draw_search_section(int hero_left, int hero_width, int divider_y,
             mvaddnstr(6, input_left + 2, "Digite o nome do produto...",
                       input_width - 4);
         }
-        attroff(COLOR_PAIR(focus == 4 ? 2 : 1) |
-                (focus == 4 ? A_BOLD | A_REVERSE : 0));
+        attroff(COLOR_PAIR(focus == 5 ? 2 : 1) |
+                (focus == 5 ? A_BOLD | A_REVERSE : 0));
         if (editing) {
             int cursor_x = input_left + 2 + (int) strlen(query);
             if (cursor_x > input_left + input_width - 2) {
@@ -104,7 +104,7 @@ static void draw_recent_outputs(int screen_height, int hero_left,
     }
 }
 
-void home_screen(void) {
+static AppScreen home_screen_view(void) {
     int screen_height;
     int screen_width;
     int sidebar_width;
@@ -121,7 +121,7 @@ void home_screen(void) {
     getmaxyx(stdscr, screen_height, screen_width);
     if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
         draw_resize_message(screen_height, screen_width);
-        return;
+        return APP_SCREEN_EXIT;
     }
 
     sidebar_width = screen_width / 3;
@@ -136,7 +136,7 @@ void home_screen(void) {
         mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
         mvhline(divider_y, hero_left, ACS_HLINE, screen_width - hero_left - 1);
 
-        draw_sidebar(screen_height, sidebar_width, focus);
+        draw_sidebar(screen_height, sidebar_width, focus == 5 ? -1 : focus);
         draw_search_section(hero_left, hero_width, divider_y, focus,
                             editing_search, search_confirmed, search_query);
         draw_recent_outputs(screen_height, hero_left, hero_width);
@@ -183,26 +183,37 @@ void home_screen(void) {
             focus = focus == 5 ? 0 : 5;
             
         } else if (character == '\n' || character == KEY_ENTER) {
-            if (focus == 4) {
+            if (focus == 5) {
                 editing_search = 1;
                 search_confirmed = 0;
                 search_length = (int) strlen(search_query);
             } else if (focus == 3) {
-                branch_screen();
-                clear(); 
-            //} else if (focus == 1) {
-            //    product_screen();
-            //    clear(); 
+                return APP_SCREEN_BRANCHES;
             } else if (focus == 2) {    
-                employee_screen();
-                clear(); 
+                return APP_SCREEN_EMPLOYEES;
             } else if (focus == 0) {
-                home_screen();
-                clear();
+                return APP_SCREEN_HOME;
             }
         } else if (character == 27) {
             curs_set(0);
-            return;
+            return APP_SCREEN_EXIT;
         }
     }
+}
+
+void home_screen(void) {
+    AppScreen current_screen = APP_SCREEN_HOME;
+
+    while (current_screen != APP_SCREEN_EXIT) {
+        if (current_screen == APP_SCREEN_HOME) {
+            current_screen = home_screen_view();
+        } else if (current_screen == APP_SCREEN_EMPLOYEES) {
+            current_screen = (AppScreen) employee_screen();
+        } else if (current_screen == APP_SCREEN_BRANCHES) {
+            current_screen = (AppScreen) branch_screen();
+        } else {
+            current_screen = APP_SCREEN_HOME;
+        }
+    }
+    curs_set(0);
 }

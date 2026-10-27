@@ -1,6 +1,6 @@
 #ifndef EMPLOYEES_SCREEN_H
 #define EMPLOYEES_SCREEN_H
 
-void employee_screen();
+int employee_screen(void);
 
 #endif

@@ -339,7 +339,7 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
     refresh();
 }
 
-void employee_screen(void) {
+int employee_screen(void) {
     Employee employees[MAX_EMPLOYEES] = {
         {"Ana", "Souza", "FUN-001", "Filial Centro", "", "ana@farmastock.com", "senha123", ROLE_MANAGER, 1},
         {"Carlos", "Lima", "FUN-002", "Filial Centro", "CRF-12345", "carlos@farmastock.com", "senha123", ROLE_PHARMACIST, 1},
@@ -366,7 +366,7 @@ void employee_screen(void) {
     getmaxyx(stdscr, screen_height, screen_width);
     if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
         draw_resize_message(screen_height, screen_width);
-        return;
+        return APP_SCREEN_HOME;
     }
 
     sidebar_width = screen_width / 3;
@@ -409,7 +409,7 @@ void employee_screen(void) {
         // --- INTERCEPTADOR DA SIDEBAR ---
         if (is_in_sidebar) {
             if (character == 27) { // ESC
-                return; // Volta para a Home
+                return APP_SCREEN_HOME;
             } else if (character == KEY_UP) {
                 sidebar_focus = sidebar_focus == 0 ? 4 : sidebar_focus - 1;
             } else if (character == KEY_DOWN) {
@@ -418,7 +418,11 @@ void employee_screen(void) {
                 is_in_sidebar = 0; // Transfere o controle do teclado para a lista de funcionários
             } else if (character == '\n' || character == KEY_ENTER) {
                 if (sidebar_focus == 0) {
-                    return; // Clicou no botão Home (Retorna para a tela chamadora)
+                    return APP_SCREEN_HOME;
+                } else if (sidebar_focus == 2) {
+                    is_in_sidebar = 0;
+                } else if (sidebar_focus == 3) {
+                    return APP_SCREEN_BRANCHES;
                 }
             }
             continue; // Pula a lógica do formulário para não misturar os controles

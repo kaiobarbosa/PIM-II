@@ -1,6 +1,13 @@
 #ifndef HOME_SCREEN_H
 #define HOME_SCREEN_H
 
+typedef enum {
+    APP_SCREEN_EXIT,
+    APP_SCREEN_HOME,
+    APP_SCREEN_EMPLOYEES,
+    APP_SCREEN_BRANCHES
+} AppScreen;
+
 void home_screen(void);
 void draw_resize_message(int screen_height, int screen_width); // Adicione esta linha!
 
