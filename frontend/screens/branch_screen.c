@@ -294,7 +294,7 @@ static void draw_branch_screen(int screen_height, int screen_width,
     refresh();
 }
 
-int branch_screen(void) {
+int branch_screen(int user_id, char *user_profile) {
     Branch branches[MAX_BRANCHES] = {
         {"001", "01001-000", "Praca da Se", "100", "Loja 1", "Se", "Sao Paulo", "SP", 1},
         {"002", "20040-002", "Rua da Assembleia", "25", "", "Centro", "Rio de Janeiro", "RJ", 1},

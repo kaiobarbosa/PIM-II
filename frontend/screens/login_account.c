@@ -203,7 +203,7 @@ void login_account_screen() {
             refresh();
             getch();
             
-            home_screen(); 
+            home_screen(session_user_id, session_user_profile); 
             
             break; 
             

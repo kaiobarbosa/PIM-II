@@ -201,16 +201,16 @@ static AppScreen home_screen_view(void) {
     }
 }
 
-void home_screen(void) {
+void home_screen(int user_id, char *user_profile) {
     AppScreen current_screen = APP_SCREEN_HOME;
 
     while (current_screen != APP_SCREEN_EXIT) {
         if (current_screen == APP_SCREEN_HOME) {
             current_screen = home_screen_view();
         } else if (current_screen == APP_SCREEN_EMPLOYEES) {
-            current_screen = (AppScreen) employee_screen();
+            current_screen = (AppScreen) employee_screen(user_id, user_profile);
         } else if (current_screen == APP_SCREEN_BRANCHES) {
-            current_screen = (AppScreen) branch_screen();
+            current_screen = (AppScreen) branch_screen(user_id, user_profile);
         } else {
             current_screen = APP_SCREEN_HOME;
         }

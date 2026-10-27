@@ -8,7 +8,8 @@ typedef enum {
     APP_SCREEN_BRANCHES
 } AppScreen;
 
-void home_screen(void);
-void draw_resize_message(int screen_height, int screen_width); // Adicione esta linha!
+void home_screen(int user_id, char *user_profile);
+
+void draw_resize_message(int screen_height, int screen_width);
 
 #endif
