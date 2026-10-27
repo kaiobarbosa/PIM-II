@@ -2,12 +2,13 @@
 #include <string.h>
 
 #include "frontend/components/sidebar.h"
+#include "frontend/screens/employees_screen.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
 #define SEARCH_BUFFER_SIZE 256
 
-static void draw_resize_message(int screen_height, int screen_width) {
+void draw_resize_message(int screen_height, int screen_width) {
     const char *message = "Aumente o terminal para continuar";
     const char *required_size = "Tamanho minimo: 70 colunas x 24 linhas";
 
@@ -178,10 +179,24 @@ void home_screen(void) {
             focus = focus == 4 ? 0 : (focus + 1) % 4;
         } else if (character == KEY_LEFT || character == KEY_RIGHT) {
             focus = focus == 4 ? 0 : 4;
-        } else if ((character == '\n' || character == KEY_ENTER) && focus == 4) {
-            editing_search = 1;
-            search_confirmed = 0;
-            search_length = (int) strlen(search_query);
+               // ... restante do seu código de navegação (KEY_UP, KEY_DOWN, etc) ...
+
+        } else if (character == '\n' || character == KEY_ENTER) {
+            if (focus == 4) {
+                // Clicou na barra de busca
+                editing_search = 1;
+                search_confirmed = 0;
+                search_length = (int) strlen(search_query);
+            } else if (focus == 2) {
+                // Clicou no botão Funcionários
+                employee_screen();
+                
+                // Força a limpar a tela quando voltar da tela de funcionários
+                // para que a home seja redesenhada corretamente no próximo giro do while(1)
+                clear(); 
+            } else if (focus == 0) {
+                // Aqui você pode colocar a ação do botão Home futuramente
+            }
         } else if (character == 27) {
             curs_set(0);
             return;
