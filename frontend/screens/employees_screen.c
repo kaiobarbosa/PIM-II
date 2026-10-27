@@ -5,6 +5,8 @@
 #include "frontend/components/sidebar.h"
 #include "frontend/screens/employees_screen.h"
 #include "frontend/screens/home_screen.h"
+#include "backend/src/presentation/director_presentation.h"
+#include "backend/src/presentation/manager_presentation.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
@@ -295,7 +297,8 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
                         int list_scroll,
                         Employee *form_employee, int form_focus,
                         int form_editing, const FormField form_fields[],
-                        int form_field_count, int confirmation_focus) {
+                        int form_field_count, int confirmation_focus,
+                        const char *status_message, int status_is_error) {
     erase();
     box(stdscr, 0, 0);
     mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
@@ -321,6 +324,13 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
         draw_choice_dialog(hero_left, hero_width, "EXCLUIR FUNCIONARIO",
                            "Confirma a exclusao deste funcionario?",
                            "[ SIM ]", "[ NAO ]", confirmation_focus);
+    }
+
+    if (status_message[0] != '\0') {
+        attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+        mvaddnstr(screen_height - 3, hero_left + 4, status_message,
+                  hero_width - 8);
+        attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
     }
 
     attron(A_DIM);
@@ -358,6 +368,8 @@ int employee_screen(char user_id[7], char *user_profile) {
     int character;
     Employee form_employee;
     EmployeeScreen screen = SCREEN_LIST;
+    char status_message[100] = "";
+    int status_is_error = 0;
 
     (void) user_id;
     (void) user_profile;
@@ -396,7 +408,7 @@ int employee_screen(char user_id[7], char *user_profile) {
                     action_focus, list_scroll,
                     &form_employee, form_focus,
                     form_editing, visible_fields, visible_field_count,
-                    confirmation_focus);
+                    confirmation_focus, status_message, status_is_error);
 
         // 2. Desenha as linhas divisórias por cima do conteúdo
         mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
@@ -451,6 +463,8 @@ int employee_screen(char user_id[7], char *user_profile) {
             } else if ((character == '\n' || character == KEY_ENTER) &&
                        list_focus == 0) {
                 clear_employee(&form_employee);
+                status_message[0] = '\0';
+                status_is_error = 0;
                 form_focus = 0;
                 form_editing = 0;
                 screen = SCREEN_NEW_FORM;
@@ -570,10 +584,65 @@ int employee_screen(char user_id[7], char *user_profile) {
                         employees[selected_employee] = form_employee;
                         screen = SCREEN_LIST;
                     }
-                } else if (is_new && employee_count < MAX_EMPLOYEES) {
-                    employees[employee_count++] = form_employee;
-                    list_focus = employee_count;
-                    screen = SCREEN_LIST;
+                } else if (is_new) {
+                    int registration_result;
+                    const char *employee_type;
+
+                    if (form_employee.role == ROLE_DIRECTOR) {
+                        employee_type = "diretor";
+                        registration_result = register_new_director(
+                            form_employee.first_name,
+                            form_employee.last_name,
+                            form_employee.code,
+                            form_employee.email,
+                            form_employee.password);
+                    } else if (form_employee.role == ROLE_MANAGER &&
+                               user_id != NULL && user_id[0] != '\0') {
+                        employee_type = "gerente";
+                        registration_result = register_new_manager(
+                            form_employee.first_name,
+                            form_employee.last_name,
+                            form_employee.code,
+                            form_employee.branch,
+                            form_employee.email,
+                            form_employee.password,
+                            user_id);
+                    } else if (form_employee.role == ROLE_MANAGER) {
+                        employee_type = NULL;
+                        registration_result = -1;
+                        snprintf(status_message, sizeof(status_message),
+                                 "ID do usuario logado nao disponivel.");
+                        status_is_error = 1;
+                    } else {
+                        employee_type = NULL;
+                        registration_result = -1;
+                        snprintf(status_message, sizeof(status_message),
+                                 "Cadastro deste cargo ainda nao esta integrado.");
+                        status_is_error = 1;
+                    }
+
+                    if (employee_type != NULL) {
+                        if (registration_result == 0) {
+                            snprintf(status_message, sizeof(status_message),
+                                     "%s cadastrado com sucesso.",
+                                     employee_type);
+                            status_is_error = 0;
+                            if (employee_count < MAX_EMPLOYEES) {
+                                Employee display_employee = form_employee;
+                                display_employee.password[0] = '\0';
+                                employees[employee_count++] = display_employee;
+                                list_focus = employee_count;
+                            } else {
+                                list_focus = 0;
+                            }
+                            clear_employee(&form_employee);
+                            screen = SCREEN_LIST;
+                        } else {
+                            snprintf(status_message, sizeof(status_message),
+                                     "Falha ao cadastrar %s.", employee_type);
+                            status_is_error = 1;
+                        }
+                    }
                 } else if (!is_new) {
                     confirmation_focus = 1;
                     screen = SCREEN_DELETE_CONFIRM;

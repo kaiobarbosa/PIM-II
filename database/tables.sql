@@ -199,7 +199,7 @@ FROM atendente;
 
 #select * from filial;
 #select * from endereco;
-
+#select * from gerente;
 #select * from diretor;
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
