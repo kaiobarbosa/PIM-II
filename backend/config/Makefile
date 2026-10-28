@@ -32,6 +32,10 @@ SRC = main.c \
       backend/src/infrastructure/repository/branch_repository.c\
       backend/src/infrastructure/repository/manager_repository.c\
       backend/src/domain/manager_domain.c\
+      backend/src/presentation/pharmacist_presentation.c\
+      backend/src/use_case/pharmacist_use_case.c\
+      backend/src/domain/pharmacist_domain.c\
+      backend/src/infrastructure/repository/pharmacist_repository.c\
 
 all: $(TARGET)
 

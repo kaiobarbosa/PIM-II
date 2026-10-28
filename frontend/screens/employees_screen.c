@@ -7,6 +7,7 @@
 #include "frontend/screens/home_screen.h"
 #include "backend/src/presentation/director_presentation.h"
 #include "backend/src/presentation/manager_presentation.h"
+#include "backend/src/presentation/pharmacist_presentation.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
@@ -607,11 +608,29 @@ int employee_screen(char user_id[7], char *user_profile) {
                             form_employee.email,
                             form_employee.password,
                             user_id);
+                    } else if (form_employee.role == ROLE_PHARMACIST &&
+                               user_id != NULL && user_id[0] != '\0') {
+                        employee_type = "farmaceutico";
+                        registration_result = register_new_pharmacist(
+                            form_employee.first_name,
+                            form_employee.last_name,
+                            form_employee.code,
+                            form_employee.crf,
+                            form_employee.email,
+                            form_employee.password,
+                            form_employee.branch,
+                            user_id);
                     } else if (form_employee.role == ROLE_MANAGER) {
                         employee_type = NULL;
                         registration_result = -1;
                         snprintf(status_message, sizeof(status_message),
                                  "ID do usuario logado nao disponivel.");
+                        status_is_error = 1;
+                    } else if (form_employee.role == ROLE_PHARMACIST) {
+                        employee_type = NULL;
+                        registration_result = -1;
+                        snprintf(status_message, sizeof(status_message),
+                                 "ID do gerente logado nao disponivel.");
                         status_is_error = 1;
                     } else {
                         employee_type = NULL;

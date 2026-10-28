@@ -97,7 +97,7 @@ create table gerente (
 id_gerente char(6) unique not null primary key,
 nome_gerente varchar(50) not null,
 sobrenome_gerente varchar(50) not null,
-codigo_interno char(8) unique not null,
+codigo_interno char(6) unique not null,
 email_gerente varchar(255) unique not null,
 senha_gerente varchar(255) not null,
 id_filial char(6) not null,
@@ -124,6 +124,7 @@ create table farmaceutico (
 id_farmaceutico char(6) unique not null primary key,
 nome_farmaceutico varchar(50) not null,
 sobrenome_farmaceutico varchar(50) not null,
+codigo_interno char(8) unique not null,
 crf_farmaceutico varchar(15) unique not null,
 email_farmaceutico varchar(255) unique not null,
 senha_farmaceutico varchar(255) not null,
@@ -201,6 +202,7 @@ FROM atendente;
 #select * from endereco;
 #select * from gerente;
 #select * from diretor;
+#select * from farmaceutico;
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
 

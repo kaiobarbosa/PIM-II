@@ -8,10 +8,3 @@ int verify_null_fields_manager(char name[], char last_name[], char internal_code
     }
     return 1;
 }
-
-int verify_branch_code(const char *branch_code) {
-    if (strlen(branch_code) != 6) {
-        return 0; 
-    }
-    return 1; 
-}

@@ -12,7 +12,7 @@ int create_new_manager (char name_manager[], char last_name_manager[], char inte
     if(verify_null_fields_manager(name_manager, last_name_manager, internal_code_manager, branch_manager, email_manager, password_manager, id_director) == 0) {
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
         return -1;
-    }else if(verify_branch_code(branch_manager) == 0) {
+    }else if(verify_internal_code_format(branch_manager) == 0) {
         fprintf(stderr, "Erro: Código da filial inválido.\n");
         return -1;
     }else if(verify_email_format(email_manager) == 0) {
