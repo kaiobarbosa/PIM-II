@@ -36,6 +36,11 @@ SRC = main.c \
       backend/src/use_case/pharmacist_use_case.c\
       backend/src/domain/pharmacist_domain.c\
       backend/src/infrastructure/repository/pharmacist_repository.c\
+      backend/src/presentation/attendant_presentation.c\
+      backend/src/use_case/attendant_use_case.c\
+      backend/src/domain/attendant_domain.c\
+      backend/src/infrastructure/repository/attendant_repository.c\
+#values 
 
 all: $(TARGET)
 
