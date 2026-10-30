@@ -9,10 +9,12 @@
 #include "backend/src/presentation/manager_presentation.h"
 #include "backend/src/presentation/pharmacist_presentation.h"
 #include "backend/src/presentation/attendant_presentation.h"
+#include "backend/src/presentation/branch_presentation.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
 #define MAX_EMPLOYEES 10
+#define MAX_BRANCHES 128
 #define MAX_FORM_FIELDS 8
 
 typedef enum {
@@ -53,6 +55,7 @@ typedef struct {
     char password[64];
     EmployeeRole role;
     int active;
+    char branch_id[7];
 } Employee;
 
 static const char *role_names[ROLE_COUNT] = {
@@ -129,6 +132,20 @@ static void clear_employee(Employee *employee) {
     memset(employee, 0, sizeof(*employee));
     employee->role = ROLE_CLERK;
     employee->active = 1;
+}
+
+static void set_employee_branch(Employee *employee, const BranchItem branches[],
+                                int branch_count, int selected_branch) {
+    if (selected_branch < 0 || selected_branch >= branch_count) {
+        employee->branch[0] = '\0';
+        employee->branch_id[0] = '\0';
+        return;
+    }
+
+    snprintf(employee->branch, sizeof(employee->branch), "%s",
+             branches[selected_branch].cep);
+    snprintf(employee->branch_id, sizeof(employee->branch_id), "%s",
+             branches[selected_branch].id_filial);
 }
 
 static void draw_employee_list(int screen_height, int hero_left,
@@ -341,7 +358,7 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
     if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
         mvaddnstr(screen_height - 2, 2,
                   form_editing ? "Digite o valor  |  Enter: concluir edicao  |  Esc: cancelar campo" :
-                  "Setas: navegar  |  Enter: editar/selecionar  |  Esc: voltar",
+                  "Setas: navegar/selecionar cargo e CEP  |  Enter: editar  |  Esc: voltar",
                   screen_width - 4);
     } else {
         mvaddnstr(screen_height - 2, 2,
@@ -360,6 +377,9 @@ int employee_screen(char user_id[7], char *user_profile) {
         {"Marina", "Costa", "FUN-003", "Filial Centro", "", "marina@farmastock.com", "senha123", ROLE_CLERK, 1}
     };
     int employee_count = 3;
+    BranchItem branches[MAX_BRANCHES];
+    int branch_count = select_all_branches_presentation(branches, MAX_BRANCHES);
+    int selected_branch = branch_count > 0 ? 0 : -1;
     int screen_height, screen_width;
     int sidebar_width, hero_left, hero_width, divider_y;
     int list_focus = 0;
@@ -375,7 +395,6 @@ int employee_screen(char user_id[7], char *user_profile) {
     char status_message[100] = "";
     int status_is_error = 0;
 
-    (void) user_id;
     (void) user_profile;
 
     // --- VARIÁVEIS DA SIDEBAR ---
@@ -395,6 +414,7 @@ int employee_screen(char user_id[7], char *user_profile) {
     
     keypad(stdscr, TRUE);
     clear_employee(&form_employee);
+    if (branch_count < 0) branch_count = 0;
 
     while (1) {
         FormField visible_fields[MAX_FORM_FIELDS];
@@ -467,6 +487,9 @@ int employee_screen(char user_id[7], char *user_profile) {
             } else if ((character == '\n' || character == KEY_ENTER) &&
                        list_focus == 0) {
                 clear_employee(&form_employee);
+                selected_branch = branch_count > 0 ? 0 : -1;
+                set_employee_branch(&form_employee, branches, branch_count,
+                                    selected_branch);
                 status_message[0] = '\0';
                 status_is_error = 0;
                 form_focus = 0;
@@ -571,6 +594,17 @@ int employee_screen(char user_id[7], char *user_profile) {
                     form_employee.role = (EmployeeRole)
                         ((form_employee.role + direction + ROLE_COUNT) % ROLE_COUNT);
                     form_focus = 0;
+                } else if (form_focus < field_count &&
+                           fields[form_focus] == FIELD_BRANCH &&
+                           branch_count > 0) {
+                    if (character == KEY_RIGHT) {
+                        selected_branch = (selected_branch + 1) % branch_count;
+                    } else {
+                        selected_branch = (selected_branch + branch_count - 1) %
+                                          branch_count;
+                    }
+                    set_employee_branch(&form_employee, branches, branch_count,
+                                        selected_branch);
                 } else if (form_focus >= field_count) {
                     form_focus = form_focus == field_count ?
                                  field_count + 1 : field_count;
@@ -579,6 +613,17 @@ int employee_screen(char user_id[7], char *user_profile) {
                 if (form_focus < field_count && fields[form_focus] == FIELD_ROLE) {
                     form_employee.role = (EmployeeRole)
                         ((form_employee.role + 1) % ROLE_COUNT);
+                } else if (form_focus < field_count &&
+                           fields[form_focus] == FIELD_BRANCH) {
+                    if (branch_count > 0) {
+                        selected_branch = (selected_branch + 1) % branch_count;
+                        set_employee_branch(&form_employee, branches,
+                                            branch_count, selected_branch);
+                    } else {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Nenhuma filial disponivel para selecao.");
+                        status_is_error = 1;
+                    }
                 } else if (form_focus < field_count) {
                     form_editing = 1;
                 } else if (form_focus == field_count) {
@@ -592,7 +637,14 @@ int employee_screen(char user_id[7], char *user_profile) {
                     int registration_result;
                     const char *employee_type;
 
-                    if (form_employee.role == ROLE_DIRECTOR) {
+                    if (form_employee.role != ROLE_DIRECTOR &&
+                        form_employee.branch_id[0] == '\0') {
+                        employee_type = NULL;
+                        registration_result = -1;
+                        snprintf(status_message, sizeof(status_message),
+                                 "Selecione o CEP de uma filial.");
+                        status_is_error = 1;
+                    } else if (form_employee.role == ROLE_DIRECTOR) {
                         employee_type = "diretor";
                         registration_result = register_new_director(
                             form_employee.first_name,
@@ -607,7 +659,7 @@ int employee_screen(char user_id[7], char *user_profile) {
                             form_employee.first_name,
                             form_employee.last_name,
                             form_employee.code,
-                            form_employee.branch,
+                            form_employee.branch_id,
                             form_employee.email,
                             form_employee.password,
                             user_id);
@@ -621,7 +673,7 @@ int employee_screen(char user_id[7], char *user_profile) {
                             form_employee.crf,
                             form_employee.email,
                             form_employee.password,
-                            form_employee.branch,
+                            form_employee.branch_id,
                             user_id);
                     } else if (form_employee.role == ROLE_CLERK &&
                                user_id != NULL && user_id[0] != '\0') {
@@ -631,7 +683,7 @@ int employee_screen(char user_id[7], char *user_profile) {
                             form_employee.last_name,
                             form_employee.email,
                             form_employee.password,
-                            form_employee.branch,
+                            form_employee.branch_id,
                             user_id);
                     } else if (form_employee.role == ROLE_MANAGER) {
                         employee_type = NULL;
