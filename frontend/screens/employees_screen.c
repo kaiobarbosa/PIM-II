@@ -10,10 +10,11 @@
 #include "backend/src/presentation/pharmacist_presentation.h"
 #include "backend/src/presentation/attendant_presentation.h"
 #include "backend/src/presentation/branch_presentation.h"
+#include "backend/src/presentation/login_presentation.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
-#define MAX_EMPLOYEES 10
+#define MAX_EMPLOYEES 128
 #define MAX_BRANCHES 128
 #define MAX_FORM_FIELDS 8
 
@@ -49,13 +50,16 @@ typedef struct {
     char first_name[40];
     char last_name[40];
     char code[32];
-    char branch[40];
+    char branch[51];
     char crf[32];
     char email[64];
     char password[64];
     EmployeeRole role;
     int active;
     char branch_id[7];
+    char user_id[7];
+    char full_name[101];
+    char display_role[20];
 } Employee;
 
 static const char *role_names[ROLE_COUNT] = {
@@ -176,29 +180,42 @@ static void draw_employee_list(int screen_height, int hero_left,
     mvaddnstr(divider_y + 2, hero_left + 4, "FUNCIONARIOS CADASTRADOS",
               hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(divider_y + 4, hero_left + 4, "NOME", content_width / 2);
-    mvaddnstr(divider_y + 4, hero_left + 4 + content_width / 2,
-              "CARGO", content_width / 2);
+    mvaddnstr(divider_y + 4, hero_left + 4, "NOME", content_width / 3);
+    mvaddnstr(divider_y + 4, hero_left + 4 + content_width / 3,
+              "FILIAL", content_width / 3);
+    mvaddnstr(divider_y + 4, hero_left + 4 + 2 * content_width / 3,
+              "CARGO", content_width - 2 * content_width / 3);
     mvhline(divider_y + 5, hero_left + 4, ACS_HLINE, content_width);
 
     for (row = 0; row < visible_count && row + scroll_offset < employee_count;
          row++) {
         int y = divider_y + 7 + row * 2;
-        char full_name[84];
+        char full_name[128];
         int employee_index = row + scroll_offset;
-        snprintf(full_name, sizeof(full_name), "%s %s%s",
-                 employees[employee_index].first_name,
-                 employees[employee_index].last_name,
-                 employees[employee_index].active ? "" : " (Inativo)");
+        if (employees[employee_index].full_name[0] != '\0') {
+            snprintf(full_name, sizeof(full_name), "%s%s",
+                     employees[employee_index].full_name,
+                     employees[employee_index].active ? "" : " (Inativo)");
+        } else {
+            snprintf(full_name, sizeof(full_name), "%s %s%s",
+                     employees[employee_index].first_name,
+                     employees[employee_index].last_name,
+                     employees[employee_index].active ? "" : " (Inativo)");
+        }
         if (focus == employee_index + 1) {
             attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
             mvhline(y, hero_left + 3, ' ', content_width + 2);
         } else if (!employees[employee_index].active) {
             attron(A_DIM);
         }
-        mvaddnstr(y, hero_left + 4, full_name, content_width / 2);
-        mvaddnstr(y, hero_left + 4 + content_width / 2,
-                  role_names[employees[employee_index].role], content_width / 2);
+        mvaddnstr(y, hero_left + 4, full_name, content_width / 3);
+        mvaddnstr(y, hero_left + 4 + content_width / 3,
+                  employees[employee_index].branch, content_width / 3);
+        mvaddnstr(y, hero_left + 4 + 2 * content_width / 3,
+                  employees[employee_index].display_role[0] != '\0' ?
+                      employees[employee_index].display_role :
+                      role_names[employees[employee_index].role],
+                  content_width - 2 * content_width / 3);
         if (focus == employee_index + 1) {
             attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         } else if (!employees[employee_index].active) {
@@ -371,12 +388,10 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
 }
 
 int employee_screen(char user_id[7], char *user_profile) {
-    Employee employees[MAX_EMPLOYEES] = {
-        {"Ana", "Souza", "FUN-001", "Filial Centro", "", "ana@farmastock.com", "senha123", ROLE_MANAGER, 1},
-        {"Carlos", "Lima", "FUN-002", "Filial Centro", "CRF-12345", "carlos@farmastock.com", "senha123", ROLE_PHARMACIST, 1},
-        {"Marina", "Costa", "FUN-003", "Filial Centro", "", "marina@farmastock.com", "senha123", ROLE_CLERK, 1}
-    };
-    int employee_count = 3;
+    Employee employees[MAX_EMPLOYEES] = {{0}};
+    UserInfoItem users[MAX_EMPLOYEES] = {{0}};
+    int employee_count = get_all_users_info_presentation(users,
+                                                         MAX_EMPLOYEES);
     BranchItem branches[MAX_BRANCHES];
     int branch_count = select_all_branches_presentation(branches, MAX_BRANCHES);
     int selected_branch = branch_count > 0 ? 0 : -1;
@@ -396,6 +411,28 @@ int employee_screen(char user_id[7], char *user_profile) {
     int status_is_error = 0;
 
     (void) user_profile;
+
+    if (employee_count < 0) employee_count = 0;
+    for (int index = 0; index < employee_count; index++) {
+        Employee *employee = &employees[index];
+        snprintf(employee->user_id, sizeof(employee->user_id), "%s",
+                 users[index].id_usuario);
+        snprintf(employee->full_name, sizeof(employee->full_name), "%s",
+                 users[index].nome);
+        snprintf(employee->branch, sizeof(employee->branch), "%s",
+                 users[index].filial);
+        snprintf(employee->display_role, sizeof(employee->display_role), "%s",
+                 users[index].cargo);
+        employee->role = ROLE_CLERK;
+        if (strcmp(users[index].cargo, "diretor") == 0) {
+            employee->role = ROLE_DIRECTOR;
+        } else if (strcmp(users[index].cargo, "gerente") == 0) {
+            employee->role = ROLE_MANAGER;
+        } else if (strcmp(users[index].cargo, "farmaceutico") == 0) {
+            employee->role = ROLE_PHARMACIST;
+        }
+        employee->active = 1;
+    }
 
     // --- VARIÁVEIS DA SIDEBAR ---
     int sidebar_focus = 2; // Começa apontando para "Funcionários"
