@@ -49,3 +49,36 @@ int get_user_by_email(const char *email, char *hash_armazenado,
 
     return encontrou;
 }
+
+int check_user_id_exist(const char *id_user) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) {
+        return -1; 
+    }
+
+    char query[256];
+    // A mágica acontece aqui: consultamos a View que unifica as 4 tabelas de usuários!
+    snprintf(query, sizeof(query), "SELECT COUNT(*) FROM vw_login_usuarios WHERE id_usuario = '%s'", id_user);
+    
+    int count = 0;
+    
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao buscar ID do usuario: %s\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (result != NULL) {
+        MYSQL_ROW row = mysql_fetch_row(result);
+        if (row && row[0]) {
+            count = atoi(row[0]); 
+        }
+        mysql_free_result(result);
+    }
+
+    mysql_close(conn);
+    
+    // Retorna 1 se o ID já estiver sendo usado por ALGUÉM, ou 0 se estiver livre
+    return (count > 0) ? 1 : 0; 
+}

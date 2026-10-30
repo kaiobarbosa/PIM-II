@@ -3,6 +3,7 @@
 #include "backend/src/utils/generate_id.h"
 #include "backend/src/domain/validation/password_crypt.h" 
 #include "backend/src/utils/verify_user_informations.h"
+#include "backend/src/infrastructure/repository/login_repository.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +24,9 @@ int check_first_use() {
 int create_director(char name_director[], char last_name_director[], char internal_code_director[], char email_director[], char password_director[]) {
     
     char id_director[7];
-    generate_id(id_director);
+    do {
+        generate_id(id_director);
+    } while (check_user_id_exist(id_director) == 1);
 
     if (verify_null_fields(name_director, last_name_director, internal_code_director, email_director, password_director) == 0) {
         return -1; 

@@ -6,6 +6,7 @@
 #include "backend/src/infrastructure/repository/manager_repository.h"
 #include "backend/src/utils/generate_id.h"
 #include "backend/src/domain/validation/password_crypt.h"
+#include "backend/src/infrastructure/repository/login_repository.h"
 
 int create_new_manager (char name_manager[], char last_name_manager[], char internal_code_manager[], char branch_manager[], char email_manager[], char password_manager[], char id_director[]) {
     
@@ -24,7 +25,9 @@ int create_new_manager (char name_manager[], char last_name_manager[], char inte
     }
 
     char id_manager[7];
-    generate_id(id_manager);
+    do {
+        generate_id(id_manager);
+    } while (check_user_id_exist(id_manager) == 1);
 
     char password_hashed[64]; 
     if (password_hash(password_manager, password_hashed, sizeof(password_hashed)) == 0) {

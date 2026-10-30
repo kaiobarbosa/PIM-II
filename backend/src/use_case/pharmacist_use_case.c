@@ -7,6 +7,7 @@
 #include "backend/src/domain/validation/password_crypt.h"
 #include "backend/src/utils/verify_user_informations.h"
 #include "backend/src/infrastructure/repository/pharmacist_repository.h"
+#include "backend/src/infrastructure/repository/login_repository.h"
 
 int create_new_pharmacist (char name_pharmacist[], char last_name_pharmacist[], char internal_code_pharmacist[], char crf[], char email_pharmacist[], char password_pharmacist[], char id_branch[], char id_supervisor[]) {
     
@@ -39,7 +40,10 @@ int create_new_pharmacist (char name_pharmacist[], char last_name_pharmacist[], 
     }
 
     char id_pharmacist[7];
-    generate_id(id_pharmacist);
+    
+    do {
+        generate_id(id_pharmacist);
+    } while (check_user_id_exist(id_pharmacist) == 1);
 
     char password_hashed[64];
     if (password_hash(password_pharmacist, password_hashed, sizeof(password_hashed)) == 0) {

@@ -8,6 +8,7 @@
 #include "backend/src/infrastructure/repository/manager_repository.h"
 #include "backend/src/infrastructure/repository/pharmacist_repository.h"
 #include "backend/src/infrastructure/repository/attendant_repository.h"
+#include "backend/src/infrastructure/repository/login_repository.h"
 
 int create_new_attendant (char name_attendant[], char last_name_attendant[], char email_attendant[], char password_attendant[], char id_branch[], char id_supervisor[]) {
 
@@ -22,7 +23,9 @@ int create_new_attendant (char name_attendant[], char last_name_attendant[], cha
         return -1;
     }
     char id_attendant[7];
-    generate_id(id_attendant);
+    do {
+        generate_id(id_attendant);
+    } while (check_user_id_exist(id_attendant) == 1);
 
     char perfil_supervisor[20] = "";
     int status_supervisor = get_supervisor_profile(id_supervisor, perfil_supervisor);
