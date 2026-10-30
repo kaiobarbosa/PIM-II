@@ -332,3 +332,9 @@ O comando `make` gera o executável `pharmaStock`. Dependendo da configuração 
 - implementar cadastro, consulta e movimentação de produtos;
 - adicionar importação de estoque por CSV;
 - criar testes automatizados para validações, bcrypt, casos de uso e repositórios.
+
+
+# Comando para execucação
+
+- make -f backend/config/makefile
+- ./pharmaStock

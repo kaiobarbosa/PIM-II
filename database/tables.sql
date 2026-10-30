@@ -39,13 +39,6 @@ foreign key (id_endereco) references endereco(id_endereco),
 foreign key (id_diretor) references diretor(id_diretor)
 );
 
-create table filial_endereco (
-id_filial char(6) not null,
-id_endereco char(6) not null,
-foreign key (id_filial) references filial (id_filial),
-foreign key (id_endereco) references endereco (id_endereco)
-);
-
 CREATE TABLE equipamentos (
     id_equipamentos char(6) unique primary key not null,
     modelo varchar(50) not null,
@@ -104,7 +97,7 @@ create table gerente (
 id_gerente char(6) unique not null primary key,
 nome_gerente varchar(50) not null,
 sobrenome_gerente varchar(50) not null,
-codigo_interno char(8) unique not null,
+codigo_interno char(6) unique not null,
 email_gerente varchar(255) unique not null,
 senha_gerente varchar(255) not null,
 id_filial char(6) not null,
@@ -131,13 +124,16 @@ create table farmaceutico (
 id_farmaceutico char(6) unique not null primary key,
 nome_farmaceutico varchar(50) not null,
 sobrenome_farmaceutico varchar(50) not null,
+codigo_interno char(8) unique not null,
 crf_farmaceutico varchar(15) unique not null,
 email_farmaceutico varchar(255) unique not null,
 senha_farmaceutico varchar(255) not null,
 id_filial char(6) not null,
-id_gerente char(6) not null,
+id_gerente char(6),
+id_diretor char(6),
 foreign key (id_filial) references filial(id_filial),
-foreign key (id_gerente) references gerente(id_gerente)
+foreign key (id_gerente) references gerente(id_gerente),
+foreign key (id_diretor) references diretor(id_diretor)
 );
 
 create table farmaceutico_filial (
@@ -154,9 +150,11 @@ sobrenome_atendente varchar(50) not null,
 email_atendente varchar(255) unique not null,
 senha_atendente varchar(255) not null,
 id_filial char(6) not null,
-id_gerente char(6) not null,
+id_gerente char(6),
+id_diretor char(6),
 foreign key (id_filial) references filial(id_filial),
-foreign key (id_gerente) references gerente(id_gerente)
+foreign key (id_gerente) references gerente(id_gerente),
+foreign key (id_diretor) references diretor(id_diretor)
 );
 
 create table atendente_filial (
@@ -166,6 +164,34 @@ foreign key (id_atendente) references atendente (id_atendente),
 foreign key (id_filial) references filial (id_filial)
 );
 
+CREATE VIEW vw_login_usuarios AS
+SELECT 
+    id_diretor AS id_usuario, 
+    email_diretor AS email, 
+    senha_diretor AS senha, 
+    'diretor' AS perfil 
+FROM diretor
+UNION ALL
+SELECT 
+    id_gerente, 
+    email_gerente, 
+    senha_gerente, 
+    'gerente' 
+FROM gerente
+UNION ALL
+SELECT 
+    id_farmaceutico, 
+    email_farmaceutico, 
+    senha_farmaceutico, 
+    'farmaceutico' 
+FROM farmaceutico
+UNION ALL
+SELECT 
+    id_atendente, 
+    email_atendente, 
+    senha_atendente, 
+    'atendente' 
+FROM atendente;
 
 # ----------------------------------------------------------------------------------------------------
 # ------------------------- TESTES TESTE TESTE TESTE TESTE TESTE TESTE TESTE -------------------------
@@ -176,8 +202,19 @@ foreign key (id_filial) references filial (id_filial)
 #INSERT INTO diretor (id_diretor, nome_diretor ,sobrenome_diretor, codigo_interno, email_diretor, senha_diretor) 
 #VALUES ('Y09BAR', 'Kaio Eduardo', 'Braga Barbosa', '000001', 'kaio.braga@gmail', '123123');
 
+#INSERT INTO atendente (id_atendente, nome_atendente, sobrenome_atendente, email_atendente, senha_atendente, id_filial, id_gerente) 
+#values ('ÁBCDEF', 'Vitor', 'Silva', 'vs@gmail.com', '123123', '5ZFCWI', 'Y01LHZ');
 
+#select * from filial;
+#select * from endereco;
+#select * from gerente;
 #select * from diretor;
+#select * from farmaceutico;
+#select * from atendente;
+
+#SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
+
+#delete from endereco where id_endereco = 'Y09BAR';
 
 #delete from diretor where id_diretor = 'Y09BAR';
 
