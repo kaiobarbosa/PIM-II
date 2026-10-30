@@ -163,7 +163,7 @@ static void draw_menu(int screen_height, int hero_left, int hero_width,
     mvaddnstr(6, hero_left + 4, "+ Cadastrar novo produto", hero_width - 8);
     if (focus == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     if (focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(divider_y + 5, hero_left + 4, "> Acessar estoque",
+    mvaddnstr(divider_y - 3, hero_left + 4, "> Acessar estoque",
               hero_width - 8);
     if (focus == 1) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     (void)screen_height;
