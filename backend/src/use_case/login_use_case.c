@@ -34,3 +34,14 @@ int login_use_case(char *email, char *password, char logged_id[7],
         return 0; 
     }
 }
+
+int get_all_users_info_use_case(UserInfoItem *users_list, int max_users) {
+    
+    int count = get_all_users_info(users_list, max_users);
+    
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar a lista de usuarios.\n");
+    }
+    
+    return count;
+}

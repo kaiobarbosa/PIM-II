@@ -7,5 +7,4 @@ int create_new_branch(char id_user[], char cep[], char logradouro[], char numero
 
 int select_all_branches_use_case(BranchItem *branches, int max_branches);
 
-
 #endif

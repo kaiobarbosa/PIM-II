@@ -13,3 +13,15 @@ int login_presentation(char *email, char *password, char logged_id[7],
 
     return 1;
 }
+
+int get_all_users_info_presentation(UserInfoItem *users_list, int max_users) {
+    
+    int result = get_all_users_info_use_case(users_list, max_users);
+    
+    if (result == -1) {
+        fprintf(stderr, "Erro na camada de apresentacao ao buscar a lista de usuarios.\n");
+        return -1;
+    }
+    
+    return result;
+}

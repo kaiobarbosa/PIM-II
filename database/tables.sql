@@ -164,6 +164,8 @@ foreign key (id_atendente) references atendente (id_atendente),
 foreign key (id_filial) references filial (id_filial)
 );
 
+#LOGIN USUARIO
+
 CREATE VIEW vw_login_usuarios AS
 SELECT 
     id_diretor AS id_usuario, 
@@ -192,6 +194,58 @@ SELECT
     senha_atendente, 
     'atendente' 
 FROM atendente;
+
+#SUPERVISORES
+
+CREATE OR REPLACE VIEW vw_supervisores AS
+SELECT id_diretor AS id_supervisor, 'diretor' AS perfil FROM diretor
+UNION ALL
+SELECT id_gerente AS id_supervisor, 'gerente' AS perfil FROM gerente;
+
+#INFORMACOES DOS USUARIOS
+
+CREATE OR REPLACE VIEW vw_informacoes_usuarios AS
+SELECT 
+    d.id_diretor AS id_usuario, 
+    CONCAT(d.nome_diretor, ' ', d.sobrenome_diretor) AS nome,
+    'Sede Principal' AS filial, -- Diretor não está atrelado a um endereço
+    'diretor' AS cargo 
+FROM diretor d
+
+UNION ALL
+
+SELECT 
+    g.id_gerente, 
+    CONCAT(g.nome_gerente, ' ', g.sobrenome_gerente),
+    e.cep, 
+    'gerente' 
+FROM gerente g
+LEFT JOIN filial f ON g.id_filial = f.id_filial
+LEFT JOIN endereco e ON f.id_endereco = e.id_endereco
+
+UNION ALL
+
+SELECT 
+    farm.id_farmaceutico, 
+    CONCAT(farm.nome_farmaceutico, ' ', farm.sobrenome_farmaceutico),
+    e.cep,
+    'farmaceutico' 
+FROM farmaceutico farm
+LEFT JOIN filial f ON farm.id_filial = f.id_filial
+LEFT JOIN endereco e ON f.id_endereco = e.id_endereco
+
+UNION ALL
+
+SELECT 
+    a.id_atendente, 
+    CONCAT(a.nome_atendente, ' ', a.sobrenome_atendente),
+    e.cep,
+    'atendente' 
+FROM atendente a
+LEFT JOIN filial f ON a.id_filial = f.id_filial
+LEFT JOIN endereco e ON f.id_endereco = e.id_endereco;
+
+
 
 # ----------------------------------------------------------------------------------------------------
 # ------------------------- TESTES TESTE TESTE TESTE TESTE TESTE TESTE TESTE -------------------------

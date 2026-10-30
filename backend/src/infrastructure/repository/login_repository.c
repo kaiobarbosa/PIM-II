@@ -82,3 +82,42 @@ int check_user_id_exist(const char *id_user) {
     // Retorna 1 se o ID já estiver sendo usado por ALGUÉM, ou 0 se estiver livre
     return (count > 0) ? 1 : 0; 
 }
+
+int get_all_users_info(UserInfoItem *users_list, int max_users) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) {
+        return -1;
+    }
+
+    // Consulta a nova view
+    const char *query = "SELECT id_usuario, nome, filial, cargo FROM vw_informacoes_usuarios";
+    
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao buscar a lista de usuarios: %s\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (result == NULL) {
+        mysql_close(conn);
+        return 0;
+    }
+
+    MYSQL_ROW row;
+    int count = 0;
+
+    // Preenchemos o array recebido com os dados do banco até atingir o limite
+    while ((row = mysql_fetch_row(result)) && count < max_users) {
+        if (row[0] != NULL) strcpy(users_list[count].id_usuario, row[0]);
+        if (row[1] != NULL) strcpy(users_list[count].nome, row[1]);
+        if (row[2] != NULL) strcpy(users_list[count].filial, row[2]);
+        if (row[3] != NULL) strcpy(users_list[count].cargo, row[3]);
+        count++;
+    }
+
+    mysql_free_result(result);
+    mysql_close(conn);
+
+    return count;
+}
