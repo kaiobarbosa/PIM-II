@@ -24,8 +24,14 @@ int create_new_pharmacist (char name_pharmacist[], char last_name_pharmacist[], 
         return -1;
     }
 
-    if(check_id_supervisor(id_supervisor) == 0) {
-        fprintf(stderr, "Erro: Supervisor não encontrado.\n%s", id_supervisor);
+    char perfil_supervisor[20] = "";
+    int status_supervisor = get_supervisor_profile(id_supervisor, perfil_supervisor);
+
+    if (status_supervisor == 0) {
+        fprintf(stderr, "Erro: ID do supervisor não encontrado.\n");
+        return -1;
+    } else if (status_supervisor == -1) {
+        fprintf(stderr, "Erro ao validar o supervisor no banco.\n");
         return -1;
     }else if(check_branch_exists(id_branch) == 0) {
         fprintf(stderr, "Erro: Filial não encontrada.\n");
@@ -41,8 +47,8 @@ int create_new_pharmacist (char name_pharmacist[], char last_name_pharmacist[], 
         return -1;
     }
 
-    if(create_pharmacist(id_pharmacist, name_pharmacist, last_name_pharmacist, internal_code_pharmacist, crf, email_pharmacist, password_hashed, id_branch, id_supervisor) == -1) {
-        fprintf(stderr, "Erro ao criar farmaceutico.\n");
+    if (create_pharmacist(id_pharmacist, name_pharmacist, last_name_pharmacist, internal_code_pharmacist, crf ,email_pharmacist, password_hashed, id_branch, id_supervisor, perfil_supervisor) == -1) {
+        fprintf(stderr, "Erro ao criar atendente.\n");
         return -1;
     }
 

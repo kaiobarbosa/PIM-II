@@ -3,9 +3,8 @@
 
 #include <mysql/mysql.h>
 
-int create_pharmacist(const char *id, const char *name, const char *last_name, const char *internal_code, const char *crf, const char *email, const char *password, const char *id_branch, const char *id_supervisor);
+int get_supervisor_profile(const char *id_supervisor, char *perfil_retornado);
 
-int check_id_supervisor(const char *id_supervisor);
+int create_pharmacist(const char *id, const char *name, const char *last_name, const char *internal_code, const char *crf, const char *email, const char *password, const char *id_branch, const char *id_supervisor, const char *perfil_supervisor);
 
 #endif
-

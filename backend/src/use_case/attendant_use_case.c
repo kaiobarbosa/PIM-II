@@ -24,19 +24,28 @@ int create_new_attendant (char name_attendant[], char last_name_attendant[], cha
     char id_attendant[7];
     generate_id(id_attendant);
 
+    char perfil_supervisor[20] = "";
+    int status_supervisor = get_supervisor_profile(id_supervisor, perfil_supervisor);
+
+    if (status_supervisor == 0) {
+        fprintf(stderr, "Erro: ID do supervisor não encontrado.\n");
+        return -1;
+    } else if (status_supervisor == -1) {
+        fprintf(stderr, "Erro ao validar o supervisor no banco.\n");
+        return -1;
+    }
+
     char password_hashed[64];
     if (password_hash(password_attendant, password_hashed, sizeof(password_hashed)) == 0) {
         fprintf(stderr, "Erro ao criptografar a senha do farmacêutico.\n");
         return -1;
-    }else if(check_id_supervisor(id_supervisor) == 0) {
-        fprintf(stderr, "Erro: Supervisor não encontrado.\n%s", id_supervisor);
-        return -1;
     }else if(check_branch_exists(id_branch) == 0) {
         fprintf(stderr, "Erro: Filial não encontrada.\n");
         return -1;
-    }else if(create_attendant(id_attendant, name_attendant, last_name_attendant, email_attendant, password_hashed, id_branch, id_supervisor) == -1) {
-        fprintf(stderr, "Erro ao criar farmaceutico.\n");
+    }else if (create_attendant(id_attendant, name_attendant, last_name_attendant, email_attendant, password_hashed, id_branch, id_supervisor, perfil_supervisor) == -1) {
+        fprintf(stderr, "Erro ao criar atendente.\n");
         return -1;
     }
+
     return 0;
 }
