@@ -7,6 +7,8 @@
 typedef struct {
     char id_filial[7];
     char cep[9];
+    char cidade[51];
+    char estado[51];
 } BranchItem;
 
 int create_new_address(const char *id, const char *cep, const char *logradouro, const char *numero, const char *complemento, const char *bairro, const char *cidade, const char *estado);

@@ -125,7 +125,7 @@ static void draw_branch_list(int screen_height, int hero_left, int hero_width,
     mvaddnstr(divider_y + 2, hero_left + 4, "FILIAIS CADASTRADAS",
               hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(divider_y + 4, hero_left + 4, "FILIAL", content_width / 2);
+    mvaddnstr(divider_y + 4, hero_left + 4, "CEP", content_width / 2);
     mvaddnstr(divider_y + 4, hero_left + 4 + content_width / 2,
               "CIDADE / UF", content_width / 2);
     mvhline(divider_y + 5, hero_left + 4, ACS_HLINE, content_width);
@@ -134,12 +134,8 @@ static void draw_branch_list(int screen_height, int hero_left, int hero_width,
          row++) {
         int y = divider_y + 7 + row * 2;
         int branch_index = row + scroll_offset;
-        char branch_name[80];
         char location[48];
 
-        snprintf(branch_name, sizeof(branch_name), "Filial %s%s",
-                 branches[branch_index].id,
-                 branches[branch_index].active ? "" : " (Inativa)");
         snprintf(location, sizeof(location), "%s / %s",
                  branches[branch_index].city, branches[branch_index].state);
 
@@ -149,7 +145,8 @@ static void draw_branch_list(int screen_height, int hero_left, int hero_width,
         } else if (!branches[branch_index].active) {
             attron(A_DIM);
         }
-        mvaddnstr(y, hero_left + 4, branch_name, content_width / 2);
+        mvaddnstr(y, hero_left + 4, branches[branch_index].postal_code,
+                  content_width / 2);
         mvaddnstr(y, hero_left + 4 + content_width / 2, location,
                   content_width / 2);
         if (focus == branch_index + 1) {
@@ -304,12 +301,9 @@ static void draw_branch_screen(int screen_height, int screen_width,
 }
 
 int branch_screen(char user_id[7], char *user_profile) {
-    Branch branches[MAX_BRANCHES] = {
-        {"001", "01001-000", "Praca da Se", "100", "Loja 1", "Se", "Sao Paulo", "SP", 1},
-        {"002", "20040-002", "Rua da Assembleia", "25", "", "Centro", "Rio de Janeiro", "RJ", 1},
-        {"003", "30130-110", "Avenida Afonso Pena", "800", "Sala 2", "Centro", "Belo Horizonte", "MG", 1}
-    };
-    int branch_count = 3;
+    Branch branches[MAX_BRANCHES] = {{0}};
+    BranchItem branch_items[MAX_BRANCHES] = {{0}};
+    int branch_count;
     int screen_height, screen_width;
     int sidebar_width, hero_left, hero_width, divider_y;
     int sidebar_focus = 3;
@@ -328,6 +322,24 @@ int branch_screen(char user_id[7], char *user_profile) {
     int status_is_error = 0;
 
     (void) user_profile;
+
+    branch_count = select_all_branches_presentation(branch_items,
+                                                     MAX_BRANCHES);
+    if (branch_count < 0) {
+        branch_count = 0;
+    }
+    for (int index = 0; index < branch_count; index++) {
+        snprintf(branches[index].id, sizeof(branches[index].id), "%s",
+                 branch_items[index].id_filial);
+        snprintf(branches[index].postal_code,
+                 sizeof(branches[index].postal_code), "%s",
+                 branch_items[index].cep);
+        snprintf(branches[index].city, sizeof(branches[index].city), "%s",
+                 branch_items[index].cidade);
+        snprintf(branches[index].state, sizeof(branches[index].state), "%s",
+                 branch_items[index].estado);
+        branches[index].active = 1;
+    }
 
     getmaxyx(stdscr, screen_height, screen_width);
     if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {

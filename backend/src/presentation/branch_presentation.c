@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 int register_new_branch(char id_user[], char cep[], char logradouro[], char numero[], char complemento[], char bairro[], char cidade[], char estado[]) {
-    
     if (create_new_branch(id_user, cep, logradouro, numero, complemento, bairro, cidade, estado) == -1) {
         fprintf(stderr, "Erro ao registrar nova filial.\n");
         return -1;
@@ -14,7 +13,6 @@ int register_new_branch(char id_user[], char cep[], char logradouro[], char nume
 }
 
 int select_all_branches_presentation(BranchItem *branches, int max_branches) {
-
     int result = select_all_branches_use_case(branches, max_branches);
     
     if (result == -1) {
