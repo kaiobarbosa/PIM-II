@@ -34,3 +34,13 @@ int create_new_branch(char id_user[], char cep[], char logradouro[], char numero
     
     return 0;
 }
+
+int select_all_branches_use_case(BranchItem *branches, int max_branches) {
+    int count = select_all_branches(branches, max_branches);
+    
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar filiais.\n");
+    }
+    
+    return count;
+}   
