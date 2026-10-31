@@ -31,6 +31,10 @@ SRC = main.c \
       backend/src/use_case/branch_use_case.c\
       backend/src/domain/branch_domain.c\
       backend/src/infrastructure/repository/branch_repository.c\
+      backend/src/presentation/products_presentation.c\
+      backend/src/use_case/products_use_case.c\
+      backend/src/domain/products_domain.c\
+      backend/src/infrastructure/repository/product_repository.c\
       backend/src/infrastructure/repository/manager_repository.c\
       backend/src/domain/manager_domain.c\
       backend/src/presentation/pharmacist_presentation.c\

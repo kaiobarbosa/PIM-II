@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "backend/src/presentation/branch_presentation.h"
+#include "backend/src/presentation/products_presentation.h"
 #include "frontend/components/sidebar.h"
 #include "frontend/screens/home_screen.h"
 #include "frontend/screens/product_screen.h"
@@ -54,9 +55,10 @@ typedef enum {
 } ProductScreenMode;
 
 typedef struct {
-    char id[16];
+    char id[7];
     char values[MAX_PRODUCT_FIELDS][128];
     ProductType type;
+    char type_name[32];
     int branch_index;
 } Product;
 
@@ -117,7 +119,7 @@ static const char *get_product_field_value(const Product *product,
                                            ProductField field,
                                            const BranchItem branches[],
                                            int branch_count) {
-    if (field == FIELD_TYPE) return product_type_names[product->type];
+    if (field == FIELD_TYPE) return product->type_name;
     if (field == FIELD_BRANCH) {
         if (product->branch_index >= 0 && product->branch_index < branch_count) {
             return branches[product->branch_index].cep;
@@ -310,6 +312,12 @@ static void clear_product(Product *product) {
     product->branch_index = -1;
 }
 
+static void set_product_type(Product *product, ProductType type) {
+    product->type = type;
+    snprintf(product->type_name, sizeof(product->type_name), "%s",
+             product_type_names[type]);
+}
+
 int product_screen(char user_id[7], char *user_profile) {
     Product products[MAX_PRODUCTS] = {{0}};
     BranchItem branches[MAX_BRANCHES] = {{0}};
@@ -424,7 +432,7 @@ int product_screen(char user_id[7], char *user_profile) {
             } else if (character == '\n' || character == KEY_ENTER) {
                 if (menu_focus == 0) {
                     clear_product(&form_product);
-                    form_product.type = PRODUCT_GENERAL;
+                    set_product_type(&form_product, PRODUCT_GENERAL);
                     form_field_count = get_form_fields(form_product.type,
                                                        form_fields);
                     form_focus = 0;
@@ -465,9 +473,9 @@ int product_screen(char user_id[7], char *user_profile) {
                 ProductField field = form_fields[form_focus];
                 if (field == FIELD_TYPE) {
                     int direction = character == KEY_RIGHT ? 1 : -1;
-                    form_product.type = (ProductType)
+                    set_product_type(&form_product, (ProductType)
                         ((form_product.type + direction + PRODUCT_TYPE_COUNT) %
-                         PRODUCT_TYPE_COUNT);
+                         PRODUCT_TYPE_COUNT));
                     form_field_count = get_form_fields(form_product.type,
                                                        form_fields);
                     if (form_focus >= form_field_count) form_focus = 0;
@@ -484,8 +492,8 @@ int product_screen(char user_id[7], char *user_profile) {
                 if (form_focus < form_field_count) {
                     ProductField field = form_fields[form_focus];
                     if (field == FIELD_TYPE) {
-                        form_product.type = (ProductType)
-                            ((form_product.type + 1) % PRODUCT_TYPE_COUNT);
+                        set_product_type(&form_product, (ProductType)
+                            ((form_product.type + 1) % PRODUCT_TYPE_COUNT));
                         form_field_count = get_form_fields(form_product.type,
                                                            form_fields);
                     } else if (field == FIELD_BRANCH) {
@@ -503,20 +511,38 @@ int product_screen(char user_id[7], char *user_profile) {
                 } else if (form_focus == form_field_count) {
                     mode = SCREEN_MENU;
                 } else if (form_product.values[FIELD_NAME][0] == '\0' ||
+                           form_product.values[FIELD_BRAND][0] == '\0' ||
+                           form_product.values[FIELD_DESCRIPTION][0] == '\0' ||
+                           form_product.values[FIELD_PRICE][0] == '\0' ||
                            form_product.values[FIELD_BARCODE][0] == '\0' ||
-                           form_product.branch_index < 0) {
+                           form_product.values[FIELD_QUANTITY][0] == '\0' ||
+                           form_product.branch_index < 0 ||
+                           form_product.branch_index >= branch_count) {
                     snprintf(status_message, sizeof(status_message),
-                             "Informe nome, codigo de barras e filial.");
+                             "Preencha todos os campos gerais e selecione a filial.");
                     status_is_error = 1;
                 } else if (product_count < MAX_PRODUCTS) {
-                    snprintf(form_product.id, sizeof(form_product.id),
-                             "TMP-%03d", product_count + 1);
-                    products[product_count++] = form_product;
-                    snprintf(status_message, sizeof(status_message),
-                             "Produto mantido nesta sessao; backend pendente.");
-                    status_is_error = 0;
-                    mode = SCREEN_MENU;
-                    menu_focus = 0;
+                    int registration_result = products_presentation(
+                        form_product.values[FIELD_NAME],
+                        form_product.values[FIELD_BRAND],
+                        form_product.values[FIELD_DESCRIPTION],
+                        form_product.values[FIELD_PRICE],
+                        form_product.values[FIELD_BARCODE],
+                        form_product.values[FIELD_QUANTITY],
+                        branches[form_product.branch_index].id_filial,
+                        form_product.id);
+                    if (registration_result == 0) {
+                        products[product_count++] = form_product;
+                        snprintf(status_message, sizeof(status_message),
+                                 "Produto cadastrado com sucesso.");
+                        status_is_error = 0;
+                        mode = SCREEN_MENU;
+                        menu_focus = 0;
+                    } else {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Falha no cadastro. Confira os campos e tente novamente.");
+                        status_is_error = 1;
+                    }
                 } else {
                     snprintf(status_message, sizeof(status_message),
                              "Limite de produtos desta sessao atingido.");
