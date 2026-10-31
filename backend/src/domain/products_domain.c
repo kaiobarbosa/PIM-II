@@ -1,9 +1,16 @@
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h> // Necessário para a função isdigit()
+#include <ctype.h>
 
 int verify_null_fields_products(char nome[], char marca[], char descricao[], char preco[], char cod_barras[], char quantidade[], char filial[]) {
     if (nome[0] == '\0' || marca[0] == '\0' || descricao[0] == '\0' || preco[0] == '\0' || cod_barras[0] == '\0' || quantidade[0] == '\0' || filial[0] == '\0') {
+        return -1; 
+    }
+    return 1;
+}
+
+int verify_null_fields_med(char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], char receita[], char tipagem[]) {
+    if (principio_ativo[0] == '\0' || forma_farmaceutica[0] == '\0' || concentracao[0] == '\0' || tarja[0] == '\0' || receita[0] == '\0' || tipagem[0] == '\0') {
         return -1; 
     }
     return 1;

@@ -284,6 +284,8 @@ LEFT JOIN endereco e ON f.id_endereco = e.id_endereco;
 #select * from farmaceutico;
 #select * from atendente;
 #select * from produto;
+#select * from medicamento;
+#select * from produto_medicamento;
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
 

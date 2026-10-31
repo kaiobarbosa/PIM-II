@@ -318,6 +318,12 @@ static void set_product_type(Product *product, ProductType type) {
              product_type_names[type]);
 }
 
+static int is_valid_prescription_value(const char *value) {
+    return strcmp(value, "sim") == 0 || strcmp(value, "nao") == 0 ||
+           strcmp(value, "não") == 0 || strcmp(value, "1") == 0 ||
+           strcmp(value, "0") == 0;
+}
+
 int product_screen(char user_id[7], char *user_profile) {
     Product products[MAX_PRODUCTS] = {{0}};
     BranchItem branches[MAX_BRANCHES] = {{0}};
@@ -521,16 +527,51 @@ int product_screen(char user_id[7], char *user_profile) {
                     snprintf(status_message, sizeof(status_message),
                              "Preencha todos os campos gerais e selecione a filial.");
                     status_is_error = 1;
+                } else if (form_product.type == PRODUCT_MEDICINE &&
+                           (form_product.values[FIELD_ACTIVE_INGREDIENT][0] == '\0' ||
+                            form_product.values[FIELD_PHARMACEUTICAL_FORM][0] == '\0' ||
+                            form_product.values[FIELD_CONCENTRATION][0] == '\0' ||
+                            form_product.values[FIELD_STRIPE][0] == '\0' ||
+                            form_product.values[FIELD_PRESCRIPTION][0] == '\0' ||
+                            form_product.values[FIELD_CLASSIFICATION][0] == '\0')) {
+                    snprintf(status_message, sizeof(status_message),
+                             "Preencha todos os campos do medicamento.");
+                    status_is_error = 1;
+                } else if (form_product.type == PRODUCT_MEDICINE &&
+                           !is_valid_prescription_value(
+                               form_product.values[FIELD_PRESCRIPTION])) {
+                    snprintf(status_message, sizeof(status_message),
+                             "Receita deve ser sim/nao ou 1/0.");
+                    status_is_error = 1;
                 } else if (product_count < MAX_PRODUCTS) {
-                    int registration_result = products_presentation(
-                        form_product.values[FIELD_NAME],
-                        form_product.values[FIELD_BRAND],
-                        form_product.values[FIELD_DESCRIPTION],
-                        form_product.values[FIELD_PRICE],
-                        form_product.values[FIELD_BARCODE],
-                        form_product.values[FIELD_QUANTITY],
-                        branches[form_product.branch_index].id_filial,
-                        form_product.id);
+                    int registration_result;
+                    if (form_product.type == PRODUCT_MEDICINE) {
+                        registration_result = product_med(
+                            form_product.values[FIELD_NAME],
+                            form_product.values[FIELD_BRAND],
+                            form_product.values[FIELD_DESCRIPTION],
+                            form_product.values[FIELD_PRICE],
+                            form_product.values[FIELD_BARCODE],
+                            form_product.values[FIELD_QUANTITY],
+                            branches[form_product.branch_index].id_filial,
+                            form_product.id,
+                            form_product.values[FIELD_ACTIVE_INGREDIENT],
+                            form_product.values[FIELD_PHARMACEUTICAL_FORM],
+                            form_product.values[FIELD_CONCENTRATION],
+                            form_product.values[FIELD_STRIPE],
+                            form_product.values[FIELD_PRESCRIPTION],
+                            form_product.values[FIELD_CLASSIFICATION]);
+                    } else {
+                        registration_result = products_presentation(
+                            form_product.values[FIELD_NAME],
+                            form_product.values[FIELD_BRAND],
+                            form_product.values[FIELD_DESCRIPTION],
+                            form_product.values[FIELD_PRICE],
+                            form_product.values[FIELD_BARCODE],
+                            form_product.values[FIELD_QUANTITY],
+                            branches[form_product.branch_index].id_filial,
+                            form_product.id);
+                    }
                     if (registration_result == 0) {
                         products[product_count++] = form_product;
                         snprintf(status_message, sizeof(status_message),
