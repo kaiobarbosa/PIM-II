@@ -117,3 +117,11 @@ int product_dermo(char nome[], char marca[], char descricao[], char preco[],
     }
     return 0;
 }
+
+int baixa_produto_estoque_presentation(char id_produto[], char quantidade[], char filial[]) {
+    if (baixa_produto_estoque_use_case(id_produto, quantidade, filial) == -1) {
+        fprintf(stderr, "Erro ao realizar a baixa do produto.\n");
+        return -1;
+    }
+    return 0;
+}

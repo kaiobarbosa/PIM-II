@@ -115,7 +115,8 @@ static void draw_search_results(int screen_height, int hero_left,
                                 int hero_width, const ProdutoItem products[],
                                 int product_count,
                                 const BranchItem branches[], int branch_count,
-                                int scroll, int search_error) {
+                                int scroll, int search_error, int focus,
+                                int selected_result) {
     int table_x = hero_left + 3;
     int table_width = hero_width - 6;
     int name_width = table_width * 42 / 100;
@@ -151,6 +152,7 @@ static void draw_search_results(int screen_height, int hero_left,
     for (row = 0; row < HOME_PRODUCTS_PER_PAGE && row + scroll < product_count;
          row++) {
         const ProdutoItem *product = &products[row + scroll];
+        int selected = focus == 6 && row + scroll == selected_result;
         char branch_label[101];
         int branch_index;
         snprintf(branch_label, sizeof(branch_label), "%s", product->filial);
@@ -161,11 +163,16 @@ static void draw_search_results(int screen_height, int hero_left,
                 break;
             }
         }
+        if (selected) {
+            attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+            mvhline(13 + row, table_x - 1, ' ', table_width + 2);
+        }
         mvaddnstr(13 + row, table_x, product->nome, name_width);
         mvaddnstr(13 + row, quantity_x, product->quantidade, quantity_width);
         mvaddnstr(13 + row, price_x, product->preco, price_width);
         if (branch_width > 0)
             mvaddnstr(13 + row, branch_x, branch_label, branch_width);
+        if (selected) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
 
     if (product_count > HOME_PRODUCTS_PER_PAGE) {
@@ -175,6 +182,47 @@ static void draw_search_results(int screen_height, int hero_left,
         snprintf(page_status, sizeof(page_status), "%d-%d de %d",
                  scroll + 1, last, product_count);
         mvaddnstr(screen_height - 3, table_x, page_status, table_width);
+    }
+}
+
+static void draw_product_actions(int screen_height, int hero_left,
+                                 int hero_width, const ProdutoItem *product,
+                                 int focus) {
+    static const char *actions[] = {"Venda", "Editar", "Excluir"};
+    int index;
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvaddnstr(10, hero_left + 3, product->nome, hero_width - 6);
+    mvaddnstr(12, hero_left + 3, "O que deseja fazer?", hero_width - 6);
+    attroff(COLOR_PAIR(1) | A_BOLD);
+    for (index = 0; index < 3; index++) {
+        if (focus == index) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+        mvaddnstr(14 + index * 2, hero_left + 5, actions[index],
+                  hero_width - 10);
+        if (focus == index) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    }
+    (void)screen_height;
+}
+
+static void draw_sale(int screen_height, int hero_left, int hero_width,
+                      const ProdutoItem *product, const char *quantity,
+                      const char *status_message, int status_is_error) {
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvaddnstr(10, hero_left + 3, "REGISTRAR VENDA", hero_width - 6);
+    attroff(COLOR_PAIR(1) | A_BOLD);
+    mvaddnstr(12, hero_left + 3, product->nome, hero_width - 6);
+    mvaddnstr(14, hero_left + 3, "Quantidade a vender:", hero_width - 6);
+    attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    mvaddch(16, hero_left + 3, '[');
+    mvhline(16, hero_left + 4, ' ', 14);
+    mvaddch(16, hero_left + 18, ']');
+    mvaddnstr(16, hero_left + 5, quantity, 12);
+    move(16, hero_left + 5 + (int)strlen(quantity));
+    attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    if (status_message[0] != '\0') {
+        attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+        mvaddnstr(screen_height - 3, hero_left + 3, status_message,
+                  hero_width - 6);
+        attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
     }
 }
 
@@ -194,9 +242,17 @@ static AppScreen home_screen_view(void) {
     int product_count = 0;
     int branch_count;
     int result_scroll = 0;
+    int selected_result = -1;
+    int action_menu_open = 0;
+    int action_focus = 0;
+    int sale_mode = 0;
+    int sale_quantity_length = 0;
+    int status_is_error = 0;
     ProdutoItem products[MAX_HOME_PRODUCTS] = {{0}};
     BranchItem branches[MAX_HOME_BRANCHES] = {{0}};
     char search_query[SEARCH_BUFFER_SIZE] = "";
+    char sale_quantity[11] = "";
+    char status_message[96] = "";
 
     branch_count = select_all_branches_presentation(branches,
                                                      MAX_HOME_BRANCHES);
@@ -223,16 +279,40 @@ static AppScreen home_screen_view(void) {
         draw_sidebar(screen_height, sidebar_width, focus == 5 ? -1 : focus);
         draw_search_section(hero_left, hero_width, divider_y, focus,
                             editing_search, search_confirmed, search_query);
-        if (search_confirmed) {
+        if (sale_mode && selected_result >= 0 &&
+            selected_result < product_count) {
+            draw_sale(screen_height, hero_left, hero_width,
+                      &products[selected_result], sale_quantity,
+                      status_message, status_is_error);
+        } else if (action_menu_open && selected_result >= 0 &&
+                   selected_result < product_count) {
+            draw_product_actions(screen_height, hero_left, hero_width,
+                                 &products[selected_result], action_focus);
+        } else if (search_confirmed) {
             draw_search_results(screen_height, hero_left, hero_width, products,
                                 product_count, branches, branch_count,
-                                result_scroll, search_error);
+                                result_scroll, search_error, focus,
+                                selected_result);
         } else {
             draw_recent_outputs(screen_height, hero_left, hero_width);
         }
+        if (status_message[0] != '\0' && !sale_mode) {
+            attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+            mvaddnstr(screen_height - 3, hero_left + 3, status_message,
+                      hero_width - 6);
+            attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+        }
 
         attron(A_DIM);
-        if (editing_search) {
+        if (sale_mode) {
+            mvaddnstr(screen_height - 2, 2,
+                      "Digite a quantidade | Enter: confirmar venda | Esc: voltar",
+                      screen_width - 4);
+        } else if (action_menu_open) {
+            mvaddnstr(screen_height - 2, 2,
+                      "Setas: escolher acao | Enter: selecionar | Esc: voltar",
+                      screen_width - 4);
+        } else if (editing_search) {
             mvaddnstr(screen_height - 2, 2,
                       "Digite o produto  |  Enter: confirmar  |  Esc: cancelar",
                       screen_width - 4);
@@ -242,16 +322,82 @@ static AppScreen home_screen_view(void) {
                       screen_width - 4);
         }
         attroff(A_DIM);
-        curs_set(editing_search ? 1 : 0);
+        curs_set(editing_search || sale_mode ? 1 : 0);
         refresh();
 
         character = getch();
-        if (editing_search) {
+        if (sale_mode) {
+            if (character == 27) {
+                sale_mode = 0;
+                action_menu_open = 1;
+                status_message[0] = '\0';
+            } else if (character == KEY_BACKSPACE || character == 127 ||
+                       character == 8) {
+                if (sale_quantity_length > 0)
+                    sale_quantity[--sale_quantity_length] = '\0';
+            } else if (character >= '0' && character <= '9' &&
+                       sale_quantity_length <
+                           (int)sizeof(sale_quantity) - 1) {
+                sale_quantity[sale_quantity_length++] = (char)character;
+                sale_quantity[sale_quantity_length] = '\0';
+            } else if (character == '\n' || character == KEY_ENTER) {
+                if (sale_quantity_length == 0 || atoi(sale_quantity) <= 0) {
+                    snprintf(status_message, sizeof(status_message),
+                             "Informe uma quantidade maior que zero.");
+                    status_is_error = 1;
+                } else if (baixa_produto_estoque_presentation(
+                               products[selected_result].id_produto,
+                               sale_quantity,
+                               products[selected_result].filial) == 0) {
+                    int remaining =
+                        atoi(products[selected_result].quantidade) -
+                        atoi(sale_quantity);
+                    snprintf(products[selected_result].quantidade,
+                             sizeof(products[selected_result].quantidade),
+                             "%d", remaining);
+                    sale_mode = 0;
+                    action_menu_open = 0;
+                    focus = 6;
+                    snprintf(status_message, sizeof(status_message),
+                             "Venda registrada. Estoque atualizado.");
+                    status_is_error = 0;
+                } else {
+                    snprintf(status_message, sizeof(status_message),
+                             "Falha na venda. Verifique o estoque disponivel.");
+                    status_is_error = 1;
+                }
+            }
+        } else if (action_menu_open) {
+            if (character == 27) {
+                action_menu_open = 0;
+                focus = 6;
+                status_message[0] = '\0';
+            } else if (character == KEY_UP || character == KEY_DOWN) {
+                action_focus = (action_focus +
+                    (character == KEY_DOWN ? 1 : 2)) % 3;
+            } else if (character == '\n' || character == KEY_ENTER) {
+                if (action_focus == 0) {
+                    sale_quantity[0] = '\0';
+                    sale_quantity_length = 0;
+                    sale_mode = 1;
+                    status_message[0] = '\0';
+                } else {
+                    snprintf(status_message, sizeof(status_message),
+                             "%s ainda nao esta disponivel.",
+                             action_focus == 1 ? "Edicao" : "Exclusao");
+                    status_is_error = 1;
+                    action_menu_open = 0;
+                    focus = 6;
+                }
+            }
+        } else if (editing_search) {
             if (character == '\n' || character == KEY_ENTER) {
                 editing_search = 0;
                 search_confirmed = 1;
                 result_scroll = 0;
                 search_error = 0;
+                status_message[0] = '\0';
+                status_is_error = 0;
                 product_count = search_query[0] == '\0' ?
                     select_all_products_presentation(products,
                                                      MAX_HOME_PRODUCTS) :
@@ -261,6 +407,7 @@ static AppScreen home_screen_view(void) {
                     search_error = 1;
                     product_count = 0;
                 }
+                selected_result = product_count > 0 ? 0 : -1;
             } else if (character == 27) {
                 editing_search = 0;
                 search_confirmed = 0;
@@ -268,6 +415,7 @@ static AppScreen home_screen_view(void) {
                 search_length = 0;
                 product_count = 0;
                 result_scroll = 0;
+                selected_result = -1;
             } else if (character == KEY_BACKSPACE || character == 127 ||
                        character == 8) {
                 if (search_length > 0) {
@@ -278,26 +426,58 @@ static AppScreen home_screen_view(void) {
                 search_query[search_length++] = (char) character;
                 search_query[search_length] = '\0';
             }
+        } else if (search_confirmed && focus == 6 &&
+                   (character == KEY_UP || character == KEY_DOWN)) {
+            if (character == KEY_UP) {
+                if (selected_result > 0) {
+                    selected_result--;
+                    if (selected_result < result_scroll) result_scroll--;
+                } else {
+                    focus = 5;
+                }
+            } else if (selected_result + 1 < product_count) {
+                selected_result++;
+                if (selected_result >= result_scroll + HOME_PRODUCTS_PER_PAGE)
+                    result_scroll++;
+            }
         } else if (character == KEY_UP) {
             focus = focus == 5 ? 4 : focus == 0 ? 4 : focus - 1;
         } else if (character == KEY_DOWN) {
-            focus = focus == 5 ? 0 : (focus + 1) % 5;
+            if (search_confirmed && focus == 5 && product_count > 0) {
+                focus = 6;
+                if (selected_result < 0) selected_result = result_scroll;
+            } else {
+                focus = focus == 5 ? 0 : (focus + 1) % 5;
+            }
         } else if (character == KEY_LEFT || character == KEY_RIGHT) {
-            focus = focus == 5 ? 0 : 5;
+            focus = focus == 5 || focus == 6 ? 0 : 5;
         } else if (character == KEY_NPAGE && search_confirmed &&
                    result_scroll + HOME_PRODUCTS_PER_PAGE < product_count) {
             result_scroll += HOME_PRODUCTS_PER_PAGE;
+            if (selected_result < result_scroll ||
+                selected_result >= result_scroll + HOME_PRODUCTS_PER_PAGE)
+                selected_result = result_scroll;
         } else if (character == KEY_PPAGE && search_confirmed) {
             result_scroll = result_scroll >= HOME_PRODUCTS_PER_PAGE ?
                             result_scroll - HOME_PRODUCTS_PER_PAGE : 0;
+            if (selected_result < result_scroll ||
+                selected_result >= result_scroll + HOME_PRODUCTS_PER_PAGE)
+                selected_result = result_scroll;
         } else if (character == '\n' || character == KEY_ENTER) {
-            if (focus == 5) {
+            if (search_confirmed && focus == 6 && selected_result >= 0 &&
+                selected_result < product_count) {
+                action_focus = 0;
+                action_menu_open = 1;
+                status_message[0] = '\0';
+            } else if (focus == 5) {
                 editing_search = 1;
                 search_confirmed = 0;
                 search_length = (int) strlen(search_query);
+                result_scroll = 0;
+                status_message[0] = '\0';
             } else if (focus == 3) {
                 return APP_SCREEN_BRANCHES;
-            } else if (focus == 2) {    
+            } else if (focus == 2) {
                 return APP_SCREEN_EMPLOYEES;
             } else if (focus == 1) {
                 return APP_SCREEN_PRODUCTS;

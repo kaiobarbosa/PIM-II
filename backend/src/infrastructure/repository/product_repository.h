@@ -13,6 +13,8 @@ typedef struct {
 } ProdutoItem;
 
 int select_all_products(ProdutoItem *produtos, int max_produtos);
+int get_quantidade_produto_by_id(const char *id_produto, const char *filial);
+int baixa_produto_estoque(const char *id_produto, const char *quantidade, const char *filial);
 int select_products_by_name(ProdutoItem *produtos, int max_produtos, const char *nome);
 int select_products_by_filial(ProdutoItem *produtos, int max_produtos, const char *filial);
 int select_products_by_filial_and_name(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome);

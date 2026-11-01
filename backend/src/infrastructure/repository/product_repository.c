@@ -47,6 +47,55 @@ int select_all_products(ProdutoItem *produtos, int max_produtos) {
     return count;
 }
 
+int get_quantidade_produto_by_id(const char *id_produto, const char *filial) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+    char query[256];
+    snprintf(query, sizeof(query), "SELECT quantidade FROM vw_busca_produtos WHERE id_produto = '%s' AND filial = '%s';", id_produto, filial);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao buscar quantidade do produto: %s\\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (result == NULL) {
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int quantidade = -1;
+
+    if (row != NULL && row[0] != NULL) {
+        quantidade = atoi(row[0]);
+    }
+
+    mysql_free_result(result);
+    mysql_close(conn);
+
+    return quantidade;
+}
+
+int baixa_produto_estoque(const char *id_produto, const char *quantidade, const char *filial) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+    char query[256];
+    snprintf(query, sizeof(query), "UPDATE produto SET quantidade_produto = quantidade_produto - %s WHERE id_produto = '%s' AND id_filial = '%s';", quantidade, id_produto, filial);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao atualizar quantidade do produto: %s\\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    mysql_close(conn);
+    return 0;
+}
+
 int select_products_by_name(ProdutoItem *produtos, int max_produtos, const char *nome) {
     MYSQL *conn = connect_to_database();
     if (conn == NULL) return -1;

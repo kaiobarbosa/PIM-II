@@ -3,6 +3,8 @@
 
 #include "backend/src/infrastructure/repository/product_repository.h"
 
+int baixa_produto_estoque_use_case(char id_produto[], char quantidade[], char filial[]);
+int get_quantidade_produto_by_id_use_case(const char *id_produto, const char *filial);
 int select_all_products_use_case(ProdutoItem *produtos, int max_produtos);
 int select_products_by_name_use_case(ProdutoItem *produtos, int max_produtos, const char *nome);
 int select_products_by_filial_use_case(ProdutoItem *produtos, int max_produtos, const char *filial);
@@ -17,5 +19,7 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
 int equipamento_use_case (char id_produto[], char modelo[], char fabricante[], char especificacoes[], char garantia[]);
 
 int dermocosmetico_use_case(char id_produto[], char tipo_pele[], char volume[], char fator_protecao[], char indicacao[]);
+
+int baixa_produto_estoque_use_case(char id_produto[], char quantidade[], char filial[]);
 
 #endif

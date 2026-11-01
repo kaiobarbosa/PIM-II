@@ -28,4 +28,6 @@ int product_dermo(char nome[], char marca[], char descricao[], char preco[],
                   char id_product[7], char tipo_pele[], char volume[],
                   char fator_protecao[], char indicacao[], char id_funcionario[]);
 
+int baixa_produto_estoque_presentation(char id_produto[], char quantidade[], char filial[]);
+
 #endif
