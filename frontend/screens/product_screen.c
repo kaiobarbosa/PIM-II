@@ -924,7 +924,7 @@ int product_screen(char user_id[7], char *user_profile) {
                 } else if (baixa_produto_estoque_presentation(
                                products[selected_product].id, sale_quantity,
                                branches[products[selected_product].branch_index]
-                                   .id_filial) == 0) {
+                                   .id_filial, user_id) == 0) {
                     int remaining =
                         atoi(products[selected_product].values[FIELD_QUANTITY]) -
                         atoi(sale_quantity);

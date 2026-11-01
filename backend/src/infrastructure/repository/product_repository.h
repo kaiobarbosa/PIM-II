@@ -14,7 +14,8 @@ typedef struct {
 
 int select_all_products(ProdutoItem *produtos, int max_produtos);
 int get_quantidade_produto_by_id(const char *id_produto, const char *filial);
-int baixa_produto_estoque(const char *id_produto, const char *quantidade, const char *filial);
+int baixa_produto_estoque(const char *id_produto, const char *quantidade,
+                          const char *filial);
 int select_products_by_name(ProdutoItem *produtos, int max_produtos, const char *nome);
 int select_products_by_filial(ProdutoItem *produtos, int max_produtos, const char *filial);
 int select_products_by_filial_and_name(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome);
@@ -36,5 +37,6 @@ int create_prod_dermo(char id_prod[], char id_dermo[]);
 int create_log_product(char id_log[], char acao[], char id_produto[],
                        char id_funcionario[], char id_filial[]);
 
-#endif
+int get_produtos_vendidos_by_user_id(const char *id_user, ProdutoItem *produtos, int max_produtos);
 
+#endif

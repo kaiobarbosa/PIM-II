@@ -28,6 +28,9 @@ int product_dermo(char nome[], char marca[], char descricao[], char preco[],
                   char id_product[7], char tipo_pele[], char volume[],
                   char fator_protecao[], char indicacao[], char id_funcionario[]);
 
-int baixa_produto_estoque_presentation(char id_produto[], char quantidade[], char filial[]);
+int baixa_produto_estoque_presentation(char id_produto[], char quantidade[],
+                                       char filial[], char id_funcionario[]);
+
+int select_produtos_vendidos_by_user_id_presentation(const char *id_user, ProdutoItem *produtos, int max_produtos);
 
 #endif

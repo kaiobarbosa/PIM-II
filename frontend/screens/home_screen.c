@@ -77,46 +77,13 @@ static void draw_search_section(int hero_left, int hero_width, int divider_y,
     mvhline(divider_y, hero_left + 1, ACS_HLINE, hero_width - 2);
 }
 
-static void draw_recent_outputs(int screen_height, int hero_left,
-                                int hero_width) {
-    int row;
-    int content_width = hero_width - 6;
-
-    attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(10, hero_left + 3, "Ultimas saidas do estoque", content_width);
-    attroff(COLOR_PAIR(1) | A_BOLD);
-    attron(A_DIM);
-    mvaddnstr(11, hero_left + 3,
-              "Exibicao ilustrativa ate a integracao com o estoque", content_width);
-    attroff(A_DIM);
-
-    attron(COLOR_PAIR(2) | A_BOLD);
-    mvaddnstr(13, hero_left + 3, "PRODUTO", content_width / 2);
-    mvaddnstr(13, hero_left + hero_width - 18, "SAIDA", 12);
-    attroff(COLOR_PAIR(2) | A_BOLD);
-    mvhline(14, hero_left + 3, ACS_HLINE, content_width);
-
-    for (row = 0; row < 3 && 16 + row * 2 < screen_height - 4; row++) {
-        int product_y = 16 + row * 2;
-        if (row == 0) {
-            mvaddnstr(product_y, hero_left + 3, "Exemplo: Dipirona 500 mg", content_width / 2);
-            mvaddnstr(product_y, hero_left + hero_width - 18, "--/--", 12);
-        } else if (row == 1) {
-            mvaddnstr(product_y, hero_left + 3, "Exemplo: Paracetamol 750 mg", content_width / 2);
-            mvaddnstr(product_y, hero_left + hero_width - 18, "--/--", 12);
-        } else if (row == 2) {
-            mvaddnstr(product_y, hero_left + 3, "Exemplo: Amoxicilina 500 mg", content_width / 2);
-            mvaddnstr(product_y, hero_left + hero_width - 18, "--/--", 12);
-        }
-    }
-}
-
 static void draw_search_results(int screen_height, int hero_left,
                                 int hero_width, const ProdutoItem products[],
                                 int product_count,
                                 const BranchItem branches[], int branch_count,
                                 int scroll, int search_error, int focus,
-                                int selected_result) {
+                                int selected_result, const char *heading,
+                                const char *empty_message) {
     int table_x = hero_left + 3;
     int table_width = hero_width - 6;
     int name_width = table_width * 42 / 100;
@@ -129,7 +96,7 @@ static void draw_search_results(int screen_height, int hero_left,
     int row;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(10, table_x, "RESULTADOS DA PESQUISA", table_width);
+    mvaddnstr(10, table_x, heading, table_width);
     attroff(COLOR_PAIR(1) | A_BOLD);
 
     if (search_error) {
@@ -137,7 +104,7 @@ static void draw_search_results(int screen_height, int hero_left,
         return;
     }
     if (product_count == 0) {
-        mvaddnstr(12, table_x, "Nenhum produto encontrado.", table_width);
+        mvaddnstr(12, table_x, empty_message, table_width);
         return;
     }
 
@@ -226,7 +193,7 @@ static void draw_sale(int screen_height, int hero_left, int hero_width,
     }
 }
 
-static AppScreen home_screen_view(void) {
+static AppScreen home_screen_view(char user_id[7]) {
     int screen_height;
     int screen_width;
     int sidebar_width;
@@ -249,6 +216,8 @@ static AppScreen home_screen_view(void) {
     int sale_quantity_length = 0;
     int status_is_error = 0;
     ProdutoItem products[MAX_HOME_PRODUCTS] = {{0}};
+    ProdutoItem recent_sales[MAX_HOME_PRODUCTS] = {{0}};
+    int recent_sales_count;
     BranchItem branches[MAX_HOME_BRANCHES] = {{0}};
     char search_query[SEARCH_BUFFER_SIZE] = "";
     char sale_quantity[11] = "";
@@ -257,6 +226,9 @@ static AppScreen home_screen_view(void) {
     branch_count = select_all_branches_presentation(branches,
                                                      MAX_HOME_BRANCHES);
     if (branch_count < 0) branch_count = 0;
+    recent_sales_count = select_produtos_vendidos_by_user_id_presentation(
+        user_id, recent_sales, MAX_HOME_PRODUCTS);
+    if (recent_sales_count < 0) recent_sales_count = 0;
 
     getmaxyx(stdscr, screen_height, screen_width);
     if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
@@ -271,6 +243,10 @@ static AppScreen home_screen_view(void) {
 
     keypad(stdscr, TRUE);
     while (1) {
+        ProdutoItem *visible_products = search_confirmed ? products :
+                                        recent_sales;
+        int visible_product_count = search_confirmed ? product_count :
+                                    recent_sales_count;
         erase();
         box(stdscr, 0, 0);
         mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
@@ -280,21 +256,22 @@ static AppScreen home_screen_view(void) {
         draw_search_section(hero_left, hero_width, divider_y, focus,
                             editing_search, search_confirmed, search_query);
         if (sale_mode && selected_result >= 0 &&
-            selected_result < product_count) {
+            selected_result < visible_product_count) {
             draw_sale(screen_height, hero_left, hero_width,
-                      &products[selected_result], sale_quantity,
+                      &visible_products[selected_result], sale_quantity,
                       status_message, status_is_error);
         } else if (action_menu_open && selected_result >= 0 &&
-                   selected_result < product_count) {
+                   selected_result < visible_product_count) {
             draw_product_actions(screen_height, hero_left, hero_width,
-                                 &products[selected_result], action_focus);
-        } else if (search_confirmed) {
-            draw_search_results(screen_height, hero_left, hero_width, products,
-                                product_count, branches, branch_count,
-                                result_scroll, search_error, focus,
-                                selected_result);
+                                 &visible_products[selected_result], action_focus);
         } else {
-            draw_recent_outputs(screen_height, hero_left, hero_width);
+            draw_search_results(
+                screen_height, hero_left, hero_width, visible_products,
+                visible_product_count, branches, branch_count, result_scroll,
+                search_confirmed ? search_error : 0, focus, selected_result,
+                search_confirmed ? "RESULTADOS DA PESQUISA" : "ULTIMAS VENDAS",
+                search_confirmed ? "Nenhum produto encontrado." :
+                                   "Nenhuma venda registrada.");
         }
         if (status_message[0] != '\0' && !sale_mode) {
             attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
@@ -346,18 +323,27 @@ static AppScreen home_screen_view(void) {
                              "Informe uma quantidade maior que zero.");
                     status_is_error = 1;
                 } else if (baixa_produto_estoque_presentation(
-                               products[selected_result].id_produto,
+                               visible_products[selected_result].id_produto,
                                sale_quantity,
-                               products[selected_result].filial) == 0) {
+                               visible_products[selected_result].filial,
+                               user_id) == 0) {
                     int remaining =
-                        atoi(products[selected_result].quantidade) -
+                        atoi(visible_products[selected_result].quantidade) -
                         atoi(sale_quantity);
-                    snprintf(products[selected_result].quantidade,
-                             sizeof(products[selected_result].quantidade),
+                    snprintf(visible_products[selected_result].quantidade,
+                             sizeof(visible_products[selected_result].quantidade),
                              "%d", remaining);
+                    recent_sales_count =
+                        select_produtos_vendidos_by_user_id_presentation(
+                            user_id, recent_sales, MAX_HOME_PRODUCTS);
+                    if (recent_sales_count < 0) recent_sales_count = 0;
                     sale_mode = 0;
                     action_menu_open = 0;
                     focus = 6;
+                    if (!search_confirmed) {
+                        selected_result = 0;
+                        result_scroll = 0;
+                    }
                     snprintf(status_message, sizeof(status_message),
                              "Venda registrada. Estoque atualizado.");
                     status_is_error = 0;
@@ -426,7 +412,7 @@ static AppScreen home_screen_view(void) {
                 search_query[search_length++] = (char) character;
                 search_query[search_length] = '\0';
             }
-        } else if (search_confirmed && focus == 6 &&
+        } else if (focus == 6 && visible_product_count > 0 &&
                    (character == KEY_UP || character == KEY_DOWN)) {
             if (character == KEY_UP) {
                 if (selected_result > 0) {
@@ -435,7 +421,7 @@ static AppScreen home_screen_view(void) {
                 } else {
                     focus = 5;
                 }
-            } else if (selected_result + 1 < product_count) {
+            } else if (selected_result + 1 < visible_product_count) {
                 selected_result++;
                 if (selected_result >= result_scroll + HOME_PRODUCTS_PER_PAGE)
                     result_scroll++;
@@ -443,7 +429,7 @@ static AppScreen home_screen_view(void) {
         } else if (character == KEY_UP) {
             focus = focus == 5 ? 4 : focus == 0 ? 4 : focus - 1;
         } else if (character == KEY_DOWN) {
-            if (search_confirmed && focus == 5 && product_count > 0) {
+            if (focus == 5 && visible_product_count > 0) {
                 focus = 6;
                 if (selected_result < 0) selected_result = result_scroll;
             } else {
@@ -451,21 +437,22 @@ static AppScreen home_screen_view(void) {
             }
         } else if (character == KEY_LEFT || character == KEY_RIGHT) {
             focus = focus == 5 || focus == 6 ? 0 : 5;
-        } else if (character == KEY_NPAGE && search_confirmed &&
-                   result_scroll + HOME_PRODUCTS_PER_PAGE < product_count) {
+        } else if (character == KEY_NPAGE &&
+                   result_scroll + HOME_PRODUCTS_PER_PAGE <
+                       visible_product_count) {
             result_scroll += HOME_PRODUCTS_PER_PAGE;
             if (selected_result < result_scroll ||
                 selected_result >= result_scroll + HOME_PRODUCTS_PER_PAGE)
                 selected_result = result_scroll;
-        } else if (character == KEY_PPAGE && search_confirmed) {
+        } else if (character == KEY_PPAGE && visible_product_count > 0) {
             result_scroll = result_scroll >= HOME_PRODUCTS_PER_PAGE ?
                             result_scroll - HOME_PRODUCTS_PER_PAGE : 0;
             if (selected_result < result_scroll ||
                 selected_result >= result_scroll + HOME_PRODUCTS_PER_PAGE)
                 selected_result = result_scroll;
         } else if (character == '\n' || character == KEY_ENTER) {
-            if (search_confirmed && focus == 6 && selected_result >= 0 &&
-                selected_result < product_count) {
+            if (focus == 6 && selected_result >= 0 &&
+                selected_result < visible_product_count) {
                 action_focus = 0;
                 action_menu_open = 1;
                 status_message[0] = '\0';
@@ -496,7 +483,7 @@ void home_screen(char user_id[7], char *user_profile) {
 
     while (current_screen != APP_SCREEN_EXIT) {
         if (current_screen == APP_SCREEN_HOME) {
-            current_screen = home_screen_view();
+            current_screen = home_screen_view(user_id);
         } else if (current_screen == APP_SCREEN_EMPLOYEES) {
             current_screen = (AppScreen) employee_screen(user_id, user_profile);
         } else if (current_screen == APP_SCREEN_BRANCHES) {

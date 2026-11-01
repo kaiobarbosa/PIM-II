@@ -118,10 +118,23 @@ int product_dermo(char nome[], char marca[], char descricao[], char preco[],
     return 0;
 }
 
-int baixa_produto_estoque_presentation(char id_produto[], char quantidade[], char filial[]) {
-    if (baixa_produto_estoque_use_case(id_produto, quantidade, filial) == -1) {
+int baixa_produto_estoque_presentation(char id_produto[], char quantidade[],
+                                       char filial[], char id_funcionario[]) {
+    if (baixa_produto_estoque_use_case(id_produto, quantidade, filial,
+                                       id_funcionario) == -1) {
         fprintf(stderr, "Erro ao realizar a baixa do produto.\n");
         return -1;
     }
     return 0;
+}
+
+int select_produtos_vendidos_by_user_id_presentation(const char *id_user, ProdutoItem *produtos, int max_produtos) {
+    int result = select_produtos_vendidos_by_user_id_use_case(id_user, produtos, max_produtos);
+
+    if (result == -1) {
+        fprintf(stderr, "Falha na camada de apresentacao ao resgatar produtos vendidos por usuario.\\n");
+        return -1;
+    }
+
+    return result;
 }

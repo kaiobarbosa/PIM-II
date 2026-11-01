@@ -216,8 +216,10 @@ int dermocosmetico_use_case(char id_produto[], char tipo_pele[], char volume[], 
     return 0;
 }
 
-int baixa_produto_estoque_use_case(char id_produto[], char quantidade[], char filial[]) {
-    if (verify_null_fields_baixa(id_produto, quantidade, filial) == -1) {
+int baixa_produto_estoque_use_case(char id_produto[], char quantidade[],
+                                   char filial[], char id_funcionario[]) {
+    if (verify_null_fields_baixa(id_produto, quantidade, filial) == -1 ||
+        id_funcionario[0] == '\0') {
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
         return -1;
     } else if (verify_internal_code_format(filial) == 0) {
@@ -247,10 +249,30 @@ int baixa_produto_estoque_use_case(char id_produto[], char quantidade[], char fi
     } else if (quantidade_baixa > quantidade_estoque) {
         fprintf(stderr, "Erro: A quantidade a ser baixada é maior do que a quantidade em estoque.\n");
         return -1;
-    }else  if(baixa_produto_estoque(id_produto, quantidade, filial) == -1){
+    }
+
+    if (baixa_produto_estoque(id_produto, quantidade, filial) == -1) {
         fprintf(stderr, "Erro: Nao foi possivel realizar a baixa do produto.\n");
         return -1;
     }
 
+    char id_log[7];
+    generate_id(id_log);
+    if (create_log_product(id_log, "Venda", id_produto, id_funcionario,
+                           filial) == -1) {
+        fprintf(stderr, "Erro ao criar log da venda do produto.\n");
+        return -1;
+    }
+
     return 0;
+}
+
+int select_produtos_vendidos_by_user_id_use_case(const char *id_user, ProdutoItem *produtos, int max_produtos) {
+    int count = get_produtos_vendidos_by_user_id(id_user, produtos, max_produtos);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos vendidos pelo usuário.\\n");
+    }
+
+    return count;
 }
