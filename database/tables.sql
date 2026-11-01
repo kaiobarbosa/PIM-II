@@ -74,23 +74,32 @@ id_dermo char(6) unique primary key not null,
 tipo_pele varchar(50) not null,
 volume varchar(50) not null,
 fator_protecao varchar(50) not null,
-indicacao varchar(50) not null,
+indicacao varchar(50) not null
+);
+
+create table produto_dermo (
 id_produto char(6) not null,
-foreign key (id_produto) references produto(id_produto)
+id_dermo char(6) not null,
+constraint fk_id_produto_dermo foreign key (id_produto) references produto (id_produto),
+constraint fk_id_dermo foreign key (id_dermo) references dermocosmetico (id_dermo),
+constraint pk_prod_dermo primary key(id_produto, id_dermo)
 );
 
 create table produto_medicamento (
 id_produto char(6) not null,
 id_medicamento char(6) not null,
-foreign key (id_produto) references produto (id_produto),
-foreign key (id_medicamento) references medicamento (id_medicamento)
+constraint fk_id_produto foreign key (id_produto) references produto (id_produto),
+constraint fk_id_medicamento foreign key (id_medicamento) references medicamento (id_medicamento),
+constraint pk_prod_med primary key(id_produto, id_medicamento)
 );
 
-create table produto_dermocosmetico (
+
+create table produto_equipamento (
 id_produto char(6) not null,
-id_dermo char(6) not null,
-foreign key (id_produto) references produto (id_produto),
-foreign key (id_dermo) references dermocosmetico (id_dermo)
+id_equipamentos char(6) not null,
+constraint fk_id_produtos foreign key (id_produto) references produto (id_produto),
+constraint fk_id_equipamento foreign key (id_equipamentos) references equipamentos (id_equipamentos),
+constraint pk_id_prod_equip primary key (id_produto, id_equipamentos)
 );
 
 create table gerente (
@@ -257,19 +266,49 @@ LEFT JOIN endereco e ON f.id_endereco = e.id_endereco;
 #VALUES ('Y09BAR', 'Kaio Eduardo', 'Braga Barbosa', '000001', 'kaio.braga@gmail', '123123');
 
 #INSERT INTO atendente (id_atendente, nome_atendente, sobrenome_atendente, email_atendente, senha_atendente, id_filial, id_gerente) 
-#values ('ÁBCDEF', 'Vitor', 'Silva', 'vs@gmail.com', '123123', '5ZFCWI', 'Y01LHZ');
+#values ('ÁBCDEF', 'Vitor', 'Silva', 'vs@gmail.com', '123123', '5ZFCWI', 'Y01LHZ'); 
+
+
+#INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial)
+#values ( 'ABCD1', 'Dipirona', 'marca_medicamento', 'dipirona 1g 10u', 'R$10.00', '123412341234', '100', 'AGWX2M');
+
+
+#INSERT INTO medicamento (id_medicamento, principio_ativo, forma_farmaceutica, concentracao, tarja, receita, tipagem)
+#values ('ACBD2', 'teste', 'teste', 'teste', 'preta', 0,'teste');
+
+
+#INSERT INTO produto_medicamento (id_produto, id_medicamento)
+#values ('ABCD1', 'ACBD2');
+
+#INSERT INTO equipamentos (id_equipamentos, modelo, fabricante, especificacoes, garantia) values
+#('MNBV1', 'Falcon III', 'HARRIS', 'UHF', '10 anos');
 
 #select * from filial;
 #select * from endereco;
+
 #select * from gerente;
 #select * from diretor;
 #select * from farmaceutico;
 #select * from atendente;
+
+#select * from produto;
+#select * from medicamento;
+#select * from produto_medicamento;
+#select * from equipamentos;
+#select * from produto_equipamento;
+#select * from dermocosmetico;
+#select * from produto_dermo;
+
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
 
 #delete from endereco where id_endereco = 'Y09BAR';
 
 #delete from diretor where id_diretor = 'Y09BAR';
+
+#delete from produto where id_produto = 'ABCD1';
+#delete from medicamento where id_medicamento = 'ACBD2';
+#delete from produto_medicamento where id_produto = 'ABCD1';
+
 
 #drop database pharma_database;

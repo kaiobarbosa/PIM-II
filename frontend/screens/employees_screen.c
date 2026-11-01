@@ -499,6 +499,8 @@ int employee_screen(char user_id[7], char *user_profile) {
                     is_in_sidebar = 0;
                 } else if (sidebar_focus == 3) {
                     return APP_SCREEN_BRANCHES;
+                } else if (sidebar_focus == 1) {
+                    return APP_SCREEN_PRODUCTS;
                 }
             }
             continue; // Pula a lógica do formulário para não misturar os controles

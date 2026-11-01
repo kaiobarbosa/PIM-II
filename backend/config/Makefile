@@ -26,10 +26,15 @@ SRC = main.c \
       backend/src/presentation/manager_presentation.c\
       backend/src/use_case/manager_use_case.c\
       frontend/screens/branch_screen.c\
+      frontend/screens/product_screen.c\
       backend/src/presentation/branch_presentation.c\
       backend/src/use_case/branch_use_case.c\
       backend/src/domain/branch_domain.c\
       backend/src/infrastructure/repository/branch_repository.c\
+      backend/src/presentation/products_presentation.c\
+      backend/src/use_case/products_use_case.c\
+      backend/src/domain/products_domain.c\
+      backend/src/infrastructure/repository/product_repository.c\
       backend/src/infrastructure/repository/manager_repository.c\
       backend/src/domain/manager_domain.c\
       backend/src/presentation/pharmacist_presentation.c\
@@ -40,7 +45,6 @@ SRC = main.c \
       backend/src/use_case/attendant_use_case.c\
       backend/src/domain/attendant_domain.c\
       backend/src/infrastructure/repository/attendant_repository.c\
-#values 
 
 all: $(TARGET)
 

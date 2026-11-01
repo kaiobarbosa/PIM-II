@@ -5,6 +5,7 @@
 #include "frontend/screens/employees_screen.h"
 #include "frontend/screens/home_screen.h"
 #include "frontend/screens/branch_screen.h"
+#include "frontend/screens/product_screen.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
@@ -191,6 +192,8 @@ static AppScreen home_screen_view(void) {
                 return APP_SCREEN_BRANCHES;
             } else if (focus == 2) {    
                 return APP_SCREEN_EMPLOYEES;
+            } else if (focus == 1) {
+                return APP_SCREEN_PRODUCTS;
             } else if (focus == 0) {
                 return APP_SCREEN_HOME;
             }
@@ -211,6 +214,8 @@ void home_screen(char user_id[7], char *user_profile) {
             current_screen = (AppScreen) employee_screen(user_id, user_profile);
         } else if (current_screen == APP_SCREEN_BRANCHES) {
             current_screen = (AppScreen) branch_screen(user_id, user_profile);
+        } else if (current_screen == APP_SCREEN_PRODUCTS) {
+            current_screen = (AppScreen) product_screen(user_id, user_profile);
         } else {
             current_screen = APP_SCREEN_HOME;
         }

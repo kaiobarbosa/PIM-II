@@ -387,6 +387,8 @@ int branch_screen(char user_id[7], char *user_profile) {
                 return APP_SCREEN_HOME;
             } else if (character_is_confirm && sidebar_focus == 2) {
                 return APP_SCREEN_EMPLOYEES;
+            } else if (character_is_confirm && sidebar_focus == 1) {
+                return APP_SCREEN_PRODUCTS;
             }
             continue;
         }
