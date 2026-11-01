@@ -4,7 +4,9 @@
 #include "backend/src/infrastructure/repository/product_repository.h"
 
 int select_all_products_presentation(ProdutoItem *produtos, int max_produtos);
-
+int select_products_by_name_presentation(ProdutoItem *produtos, int max_produtos, const char *nome);
+int select_products_by_filial_presentation(ProdutoItem *produtos, int max_produtos, const char *filial);
+int select_products_by_filial_and_name_presentation(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome);
 
 int products_presentation(char nome[], char marca[], char descricao[],
                           char preco[], char cod_barras[], char quantidade[],

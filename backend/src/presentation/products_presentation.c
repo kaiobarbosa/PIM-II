@@ -5,14 +5,50 @@
 #include "backend/src/presentation/products_presentation.h"
 
 int select_all_products_presentation(ProdutoItem *produtos, int max_produtos) {
-    
+
     int result = select_all_products_use_case(produtos, max_produtos);
-    
+
     if (result == -1) {
         fprintf(stderr, "Falha na camada de apresentacao ao resgatar produtos.\\n");
         return -1;
     }
-    
+
+    return result;
+}
+
+int select_products_by_name_presentation(ProdutoItem *produtos, int max_produtos, const char *nome) {
+
+    int result = select_products_by_name_use_case(produtos, max_produtos, nome);
+
+    if (result == -1) {
+        fprintf(stderr, "Falha na camada de apresentacao ao resgatar produtos por nome.\\n");
+        return -1;
+    }
+
+    return result;
+}
+
+int select_products_by_filial_presentation(ProdutoItem *produtos, int max_produtos, const char *filial) {
+
+    int result = select_products_by_filial_use_case(produtos, max_produtos, filial);
+
+    if (result == -1) {
+        fprintf(stderr, "Falha na camada de apresentacao ao resgatar produtos por filial.\\n");
+        return -1;
+    }
+
+    return result;
+}
+
+int select_products_by_filial_and_name_presentation(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome) {
+
+    int result = select_products_by_filial_and_name_use_case(produtos, max_produtos, filial, nome);
+
+    if (result == -1) {
+        fprintf(stderr, "Falha na camada de apresentacao ao resgatar produtos por filial e nome.\\n");
+        return -1;
+    }
+
     return result;
 }
 

@@ -13,6 +13,9 @@ typedef struct {
 } ProdutoItem;
 
 int select_all_products(ProdutoItem *produtos, int max_produtos);
+int select_products_by_name(ProdutoItem *produtos, int max_produtos, const char *nome);
+int select_products_by_filial(ProdutoItem *produtos, int max_produtos, const char *filial);
+int select_products_by_filial_and_name(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome);
 
 int create_product(const char *id, const char *nome, const char *marca, const char *descricao, const char *preco, const char *cod_barras, const char *quantidade, const char *filial);
 

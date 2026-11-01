@@ -9,9 +9,141 @@ int select_all_products(ProdutoItem *produtos, int max_produtos) {
     if (conn == NULL) return -1;
 
    const char *query = "SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos order by nome;";
-    
+
     if (mysql_query(conn, query)) {
         fprintf(stderr, "Erro ao buscar produtos: %s\\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (result == NULL) {
+        mysql_close(conn);
+        return 0;
+    }
+
+    MYSQL_ROW row;
+    int count = 0;
+
+    while ((row = mysql_fetch_row(result)) && count < max_produtos) {
+        snprintf(produtos[count].id_produto,
+                 sizeof(produtos[count].id_produto), "%s",
+                 row[0] != NULL ? row[0] : "");
+        snprintf(produtos[count].nome, sizeof(produtos[count].nome), "%s",
+                 row[1] != NULL ? row[1] : "");
+        snprintf(produtos[count].preco, sizeof(produtos[count].preco), "%s",
+                 row[2] != NULL ? row[2] : "");
+        snprintf(produtos[count].quantidade,
+                 sizeof(produtos[count].quantidade), "%s",
+                 row[3] != NULL ? row[3] : "");
+        snprintf(produtos[count].filial, sizeof(produtos[count].filial), "%s",
+                 row[4] != NULL ? row[4] : "");
+        count++;
+    }
+
+    mysql_free_result(result);
+    mysql_close(conn);
+
+    return count;
+}
+
+int select_products_by_name(ProdutoItem *produtos, int max_produtos, const char *nome) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+    char query[512];
+    snprintf(query, sizeof(query), "SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos WHERE nome LIKE '%%%s%%' ORDER BY nome;", nome);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao buscar produtos por nome: %s\\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (result == NULL) {
+        mysql_close(conn);
+        return 0;
+    }
+
+    MYSQL_ROW row;
+    int count = 0;
+
+    while ((row = mysql_fetch_row(result)) && count < max_produtos) {
+        snprintf(produtos[count].id_produto,
+                 sizeof(produtos[count].id_produto), "%s",
+                 row[0] != NULL ? row[0] : "");
+        snprintf(produtos[count].nome, sizeof(produtos[count].nome), "%s",
+                 row[1] != NULL ? row[1] : "");
+        snprintf(produtos[count].preco, sizeof(produtos[count].preco), "%s",
+                 row[2] != NULL ? row[2] : "");
+        snprintf(produtos[count].quantidade,
+                 sizeof(produtos[count].quantidade), "%s",
+                 row[3] != NULL ? row[3] : "");
+        snprintf(produtos[count].filial, sizeof(produtos[count].filial), "%s",
+                 row[4] != NULL ? row[4] : "");
+        count++;
+    }
+
+    mysql_free_result(result);
+    mysql_close(conn);
+
+    return count;
+}
+
+int select_products_by_filial(ProdutoItem *produtos, int max_produtos, const char *filial) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+    char query[512];
+    snprintf(query, sizeof(query), "SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos WHERE filial = '%s' ORDER BY nome;", filial);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao buscar produtos por filial: %s\\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (result == NULL) {
+        mysql_close(conn);
+        return 0;
+    }
+
+    MYSQL_ROW row;
+    int count = 0;
+
+    while ((row = mysql_fetch_row(result)) && count < max_produtos) {
+        snprintf(produtos[count].id_produto,
+                 sizeof(produtos[count].id_produto), "%s",
+                 row[0] != NULL ? row[0] : "");
+        snprintf(produtos[count].nome, sizeof(produtos[count].nome), "%s",
+                 row[1] != NULL ? row[1] : "");
+        snprintf(produtos[count].preco, sizeof(produtos[count].preco), "%s",
+                 row[2] != NULL ? row[2] : "");
+        snprintf(produtos[count].quantidade,
+                 sizeof(produtos[count].quantidade), "%s",
+                 row[3] != NULL ? row[3] : "");
+        snprintf(produtos[count].filial, sizeof(produtos[count].filial), "%s",
+                 row[4] != NULL ? row[4] : "");
+        count++;
+    }
+
+    mysql_free_result(result);
+    mysql_close(conn);
+
+    return count;
+}
+
+int select_products_by_filial_and_name(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+    char query[512];
+    snprintf(query, sizeof(query), "SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos WHERE filial = '%s' AND nome LIKE '%%%s%%' ORDER BY nome;", filial, nome);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao buscar produtos por filial e nome: %s\\n", mysql_error(conn));
         mysql_close(conn);
         return -1;
     }

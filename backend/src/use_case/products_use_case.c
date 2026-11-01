@@ -12,11 +12,41 @@
 
 int select_all_products_use_case(ProdutoItem *produtos, int max_produtos) {
     int count = select_all_products(produtos, max_produtos);
-    
+
     if (count == -1) {
         fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos.\\n");
     }
-    
+
+    return count;
+}
+
+int select_products_by_name_use_case(ProdutoItem *produtos, int max_produtos, const char *nome) {
+    int count = select_products_by_name(produtos, max_produtos, nome);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos por nome.\\n");
+    }
+
+    return count;
+}
+
+int select_products_by_filial_use_case(ProdutoItem *produtos, int max_produtos, const char *filial) {
+    int count = select_products_by_filial(produtos, max_produtos, filial);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos por filial.\\n");
+    }
+
+    return count;
+}
+
+int select_products_by_filial_and_name_use_case(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome) {
+    int count = select_products_by_filial_and_name(produtos, max_produtos, filial, nome);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos por filial e nome.\\n");
+    }
+
     return count;
 }
 
@@ -33,7 +63,7 @@ int products_use_case(char nome[], char marca[], char descricao[],
     }
 
     int numeric_status = verify_numeric_fields_products(preco, quantidade, cod_barras);
-    
+
     if (numeric_status == -1) {
         fprintf(stderr, "Erro: O preço possui caracteres inválidos.\n");
         return -1;
@@ -82,7 +112,7 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
         return -1;
     }
-    
+
     bool receita_bool;
 
     if (strcmp(receita, "sim") == 0 || strcmp(receita, "1") == 0) {

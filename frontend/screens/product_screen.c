@@ -212,7 +212,7 @@ static void draw_menu(int screen_height, int hero_left, int hero_width,
         if (selected) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
     if (product_count == 0)
-        mvaddnstr(divider_y + 4, table_x, "Nenhum produto cadastrado.",
+        mvaddnstr(divider_y + 4, table_x, "Nenhum produto encontrado.",
                   table_width);
     else if (product_count > PRODUCTS_PER_PAGE) {
         char page_status[48];
@@ -381,30 +381,27 @@ static int is_valid_prescription_value(const char *value) {
            strcmp(value, "0") == 0;
 }
 
-static int refresh_product_list(Product products[], ProdutoItem product_items[],
-                                const BranchItem branches[], int branch_count) {
-    int product_count = select_all_products_presentation(product_items,
-                                                          MAX_PRODUCTS);
+static void map_product_items(Product products[], const ProdutoItem items[],
+                              int product_count, const BranchItem branches[],
+                              int branch_count) {
     int item_index;
-
-    if (product_count < 0) return -1;
 
     for (item_index = 0; item_index < product_count; item_index++) {
         int branch_index;
         snprintf(products[item_index].id, sizeof(products[item_index].id),
-                 "%s", product_items[item_index].id_produto);
+                 "%s", items[item_index].id_produto);
         snprintf(products[item_index].values[FIELD_NAME],
                  sizeof(products[item_index].values[FIELD_NAME]), "%s",
-                 product_items[item_index].nome);
+                 items[item_index].nome);
         snprintf(products[item_index].values[FIELD_QUANTITY],
                  sizeof(products[item_index].values[FIELD_QUANTITY]), "%s",
-                 product_items[item_index].quantidade);
+                 items[item_index].quantidade);
         snprintf(products[item_index].values[FIELD_PRICE],
                  sizeof(products[item_index].values[FIELD_PRICE]), "%s",
-                 product_items[item_index].preco);
+                 items[item_index].preco);
         products[item_index].branch_index = -1;
         for (branch_index = 0; branch_index < branch_count; branch_index++) {
-            if (strcmp(product_items[item_index].filial,
+            if (strcmp(items[item_index].filial,
                        branches[branch_index].id_filial) == 0) {
                 products[item_index].branch_index = branch_index;
                 break;
@@ -414,10 +411,37 @@ static int refresh_product_list(Product products[], ProdutoItem product_items[],
                  sizeof(products[item_index].values[FIELD_BRANCH]), "%s",
                  products[item_index].branch_index >= 0 ?
                      branches[products[item_index].branch_index].cep :
-                     product_items[item_index].filial);
+                     items[item_index].filial);
     }
+}
 
+static int refresh_product_list(Product products[], ProdutoItem product_items[],
+                                const BranchItem branches[], int branch_count) {
+    int product_count = select_all_products_presentation(product_items,
+                                                          MAX_PRODUCTS);
+
+    if (product_count < 0) return -1;
+
+    map_product_items(products, product_items, product_count, branches,
+                      branch_count);
     return product_count;
+}
+
+static int search_products(ProdutoItem products[], const char *name,
+                           int branch_filter, const BranchItem branches[]) {
+    if (name[0] != '\0' && branch_filter >= 0) {
+        return select_products_by_filial_and_name_presentation(
+            products, MAX_PRODUCTS, branches[branch_filter].id_filial, name);
+    }
+    if (name[0] != '\0') {
+        return select_products_by_name_presentation(products, MAX_PRODUCTS,
+                                                    name);
+    }
+    if (branch_filter >= 0) {
+        return select_products_by_filial_presentation(
+            products, MAX_PRODUCTS, branches[branch_filter].id_filial);
+    }
+    return select_all_products_presentation(products, MAX_PRODUCTS);
 }
 
 int product_screen(char user_id[7], char *user_profile) {
@@ -833,11 +857,28 @@ int product_screen(char user_id[7], char *user_profile) {
                     branch_filter = branch_count == 0 ? -1 :
                         (branch_filter + 2) % (branch_count + 1) - 1;
                 } else if (stock_focus == 2) {
-                    snprintf(applied_search, sizeof(applied_search), "%s",
-                             stock_search);
-                    applied_branch_filter = branch_filter;
-                    stock_scroll = 0;
-                    stock_focus = 2;
+                    int matched_count = search_products(
+                        product_items, stock_search, branch_filter, branches);
+                    if (matched_count < 0) {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Falha ao pesquisar produtos.");
+                        status_is_error = 1;
+                        menu_focus = 1;
+                    } else {
+                        map_product_items(products, product_items,
+                                          matched_count, branches, branch_count);
+                        product_count = matched_count;
+                        products_scroll = 0;
+                        selected_product = product_count > 0 ? 0 : -1;
+                        menu_focus = product_count > 0 ? 2 : 1;
+                        applied_search[0] = '\0';
+                        applied_branch_filter = -1;
+                        snprintf(status_message, sizeof(status_message),
+                                 "Pesquisa concluida: %d produto(s).",
+                                 product_count);
+                        status_is_error = 0;
+                    }
+                    mode = SCREEN_MENU;
                 }
             } else if (character == 27) {
                 mode = SCREEN_MENU;
