@@ -9,4 +9,6 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
 
 int equipamento_use_case (char id_produto[], char modelo[], char fabricante[], char especificacoes[], char garantia[]);
 
+int dermocosmetico_use_case(char id_produto[], char tipo_pele[], char volume[], char fator_protecao[], char indicacao[]);
+
 #endif

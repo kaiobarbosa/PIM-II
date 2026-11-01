@@ -23,6 +23,13 @@ int verify_null_fields_equip(char modelo[], char fabricante[], char especificaco
     return 1;
 }
 
+int verify_null_fields_dermo(char tipo_pele[], char volume[], char fator_protecao[], char indicacao[]){
+    if (tipo_pele[0] == '\0' || volume[0] == '\0' || fator_protecao[0] == '\0' || indicacao[0] == '\0') {
+        return -1;
+    }
+    return 1;
+}
+
 int is_only_digits(const char *str) {
     for (int i = 0; str[i] != '\0'; i++) {
         if (!isdigit((unsigned char)str[i])) {

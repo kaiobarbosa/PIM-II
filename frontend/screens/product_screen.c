@@ -85,8 +85,7 @@ static int get_form_fields(ProductType type, ProductField fields[]) {
         FIELD_CLASSIFICATION
     };
     static const ProductField dermocosmetic[] = {
-        FIELD_SKIN_TYPE, FIELD_VOLUME, FIELD_SUN_PROTECTION,
-        FIELD_INDICATION, FIELD_DERMOCOSMETIC_ID
+        FIELD_SKIN_TYPE, FIELD_VOLUME, FIELD_SUN_PROTECTION, FIELD_INDICATION
     };
     static const ProductField equipment[] = {
         FIELD_MODEL, FIELD_MANUFACTURER, FIELD_SPECIFICATIONS, FIELD_WARRANTY
@@ -551,6 +550,14 @@ int product_screen(char user_id[7], char *user_profile) {
                     snprintf(status_message, sizeof(status_message),
                              "Preencha todos os campos do equipamento.");
                     status_is_error = 1;
+                } else if (form_product.type == PRODUCT_DERMOCOSMETIC &&
+                           (form_product.values[FIELD_SKIN_TYPE][0] == '\0' ||
+                            form_product.values[FIELD_VOLUME][0] == '\0' ||
+                            form_product.values[FIELD_SUN_PROTECTION][0] == '\0' ||
+                            form_product.values[FIELD_INDICATION][0] == '\0')) {
+                    snprintf(status_message, sizeof(status_message),
+                             "Preencha todos os campos do dermocosmetico.");
+                    status_is_error = 1;
                 } else if (product_count < MAX_PRODUCTS) {
                     int registration_result;
                     if (form_product.type == PRODUCT_MEDICINE) {
@@ -583,6 +590,20 @@ int product_screen(char user_id[7], char *user_profile) {
                             form_product.values[FIELD_MANUFACTURER],
                             form_product.values[FIELD_SPECIFICATIONS],
                             form_product.values[FIELD_WARRANTY]);
+                    } else if (form_product.type == PRODUCT_DERMOCOSMETIC) {
+                        registration_result = product_dermo(
+                            form_product.values[FIELD_NAME],
+                            form_product.values[FIELD_BRAND],
+                            form_product.values[FIELD_DESCRIPTION],
+                            form_product.values[FIELD_PRICE],
+                            form_product.values[FIELD_BARCODE],
+                            form_product.values[FIELD_QUANTITY],
+                            branches[form_product.branch_index].id_filial,
+                            form_product.id,
+                            form_product.values[FIELD_SKIN_TYPE],
+                            form_product.values[FIELD_VOLUME],
+                            form_product.values[FIELD_SUN_PROTECTION],
+                            form_product.values[FIELD_INDICATION]);
                     } else {
                         registration_result = products_presentation(
                             form_product.values[FIELD_NAME],

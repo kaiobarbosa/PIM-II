@@ -296,6 +296,8 @@ LEFT JOIN endereco e ON f.id_endereco = e.id_endereco;
 #select * from produto_medicamento;
 #select * from equipamentos;
 #select * from produto_equipamento;
+#select * from dermocosmetico;
+#select * from produto_dermo;
 
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';

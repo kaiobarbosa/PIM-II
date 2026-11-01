@@ -34,9 +34,15 @@ int products_use_case(char nome[], char marca[], char descricao[],
     }
 
     char generated_id[7];
+    int id_status;
     do {
         generate_id(generated_id);
-    } while (check_user_id_exist(generated_id) == 1);
+        id_status = check_user_id_exist(generated_id);
+        if (id_status < 0) {
+            fprintf(stderr, "Erro ao verificar disponibilidade do ID do produto.\n");
+            return -1;
+        }
+    } while (id_status == 1);
 
     if (create_product(generated_id, nome, marca, descricao, preco,
                        cod_barras, quantidade, filial) == -1) {
@@ -70,9 +76,15 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
     }
 
     char generated_id[7];
+    int id_status;
     do {
         generate_id(generated_id);
-    } while (check_user_id_exist(generated_id) == 1);
+        id_status = check_user_id_exist(generated_id);
+        if (id_status < 0) {
+            fprintf(stderr, "Erro ao verificar disponibilidade do ID do medicamento.\n");
+            return -1;
+        }
+    } while (id_status == 1);
 
     if(create_med(generated_id, principio_ativo, forma_farmaceutica, concentracao, tarja, receita_bool, tipagem) == -1){
         fprintf(stderr, "Erro: Nao foi possivel criar medicamento.\n");
@@ -108,6 +120,35 @@ int equipamento_use_case (char id_produto[], char modelo[], char fabricante[], c
         return -1;
     }else if(create_prod_equip(id_produto, generated_id) == -1){
         fprintf(stderr, "Erro: Nao foi possivel criar o produto_equipamento.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int dermocosmetico_use_case(char id_produto[], char tipo_pele[], char volume[], char fator_protecao[], char indicacao[]){
+
+    if(verify_null_fields_dermo(tipo_pele, volume, fator_protecao, indicacao) == -1){
+        fprintf(stderr, "Erro: Campos nulos detectados.\n");
+        return -1;
+    }
+
+    char generated_id[7];
+    int id_status;
+    do {
+        generate_id(generated_id);
+        id_status = check_user_id_exist(generated_id);
+        if (id_status < 0) {
+            fprintf(stderr, "Erro ao verificar disponibilidade do ID do dermocosmetico.\n");
+            return -1;
+        }
+    } while (id_status == 1);
+
+    if(create_dermo(generated_id, tipo_pele, volume, fator_protecao, indicacao) == -1){
+        fprintf(stderr, "Erro: Nao foi possivel criar o dermocosmetico.\n");
+        return -1;
+    }else if(create_prod_dermo(id_produto, generated_id) == -1){
+        fprintf(stderr, "Erro: Nao foi possivel criar o produto_dermo.\n");
         return -1;
     }
 

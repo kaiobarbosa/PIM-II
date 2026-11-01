@@ -16,4 +16,9 @@ int product_equip(char nome[], char marca[], char descricao[], char preco[],
                   char id_product[7], char modelo[], char fabricante[],
                   char especificacoes[], char garantia[]);
 
+int product_dermo(char nome[], char marca[], char descricao[], char preco[],
+                  char cod_barras[], char quantidade[], char filial[],
+                  char id_product[7], char tipo_pele[], char volume[],
+                  char fator_protecao[], char indicacao[]);
+
 #endif

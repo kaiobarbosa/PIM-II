@@ -14,5 +14,9 @@ int create_equip(char id_equipamento[], char modelo[], char fabricante[], char e
 
 int create_prod_equip(char id_prod[], char id_equip[]);
 
+int create_dermo(char id_dermo[], char tipo_pele[], char volume[], char fator_protecao[], char indicacao[]);
+
+int create_prod_dermo(char id_prod[], char id_dermo[]);
+
 #endif
 
