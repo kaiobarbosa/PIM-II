@@ -543,6 +543,14 @@ int product_screen(char user_id[7], char *user_profile) {
                     snprintf(status_message, sizeof(status_message),
                              "Receita deve ser sim/nao ou 1/0.");
                     status_is_error = 1;
+                } else if (form_product.type == PRODUCT_EQUIPMENT &&
+                           (form_product.values[FIELD_MODEL][0] == '\0' ||
+                            form_product.values[FIELD_MANUFACTURER][0] == '\0' ||
+                            form_product.values[FIELD_SPECIFICATIONS][0] == '\0' ||
+                            form_product.values[FIELD_WARRANTY][0] == '\0')) {
+                    snprintf(status_message, sizeof(status_message),
+                             "Preencha todos os campos do equipamento.");
+                    status_is_error = 1;
                 } else if (product_count < MAX_PRODUCTS) {
                     int registration_result;
                     if (form_product.type == PRODUCT_MEDICINE) {
@@ -561,6 +569,20 @@ int product_screen(char user_id[7], char *user_profile) {
                             form_product.values[FIELD_STRIPE],
                             form_product.values[FIELD_PRESCRIPTION],
                             form_product.values[FIELD_CLASSIFICATION]);
+                    } else if (form_product.type == PRODUCT_EQUIPMENT) {
+                        registration_result = product_equip(
+                            form_product.values[FIELD_NAME],
+                            form_product.values[FIELD_BRAND],
+                            form_product.values[FIELD_DESCRIPTION],
+                            form_product.values[FIELD_PRICE],
+                            form_product.values[FIELD_BARCODE],
+                            form_product.values[FIELD_QUANTITY],
+                            branches[form_product.branch_index].id_filial,
+                            form_product.id,
+                            form_product.values[FIELD_MODEL],
+                            form_product.values[FIELD_MANUFACTURER],
+                            form_product.values[FIELD_SPECIFICATIONS],
+                            form_product.values[FIELD_WARRANTY]);
                     } else {
                         registration_result = products_presentation(
                             form_product.values[FIELD_NAME],

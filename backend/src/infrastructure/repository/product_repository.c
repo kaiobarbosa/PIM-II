@@ -54,11 +54,56 @@ int create_prod_med (char id_prod[], char id_med[]){
     snprintf(query, sizeof(query),  "INSERT INTO produto_medicamento (id_produto, id_medicamento) values ('%s', '%s')", id_prod, id_med);
 
     if (mysql_query(conn, query)) {
-        fprintf(stderr, "Erro ao criar produto_medicamento: %s\n", mysql_error(conn));
+        fprintf(stderr, "Erro ao criar produto_medicamento: %s\n",
+                mysql_error(conn));
         mysql_close(conn);
         return -1;
     }
 
     mysql_close(conn);
     return 0;
+}
+
+int create_equip(char id_equipamento[], char modelo[], char fabricante[], char especificacoes[], char garantia[]){
+
+     MYSQL *conn = connect_to_database();
+    if (conn == NULL) {
+        fprintf(stderr, "Erro ao conectar ao banco de dados.\n");
+        return -1;
+    }
+
+    char query[512];
+    snprintf(query, sizeof(query),  "INSERT INTO equipamentos (id_equipamentos, modelo, fabricante, especificacoes, garantia) values('%s', '%s', '%s', '%s', '%s')", id_equipamento, modelo, fabricante, especificacoes, garantia);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao criar equipamento: %s\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    mysql_close(conn);
+    return 0;
+}
+
+int create_prod_equip(char id_prod[], char id_equip[]){
+
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) {
+        fprintf(stderr, "Erro ao conectar ao banco de dados.\n");
+        return -1;
+    }
+
+    char query[512];
+    snprintf(query, sizeof(query), "INSERT INTO produto_equipamento (id_produto, id_equipamentos) values ('%s', '%s')", id_prod, id_equip);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao relacionar produto e equipamento: %s\n",
+                mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    mysql_close(conn);
+    return 0;
+
 }

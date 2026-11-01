@@ -34,3 +34,20 @@ int product_med(char nome[], char marca[], char descricao[], char preco[],
     }
     return 0;
 }
+
+int product_equip(char nome[], char marca[], char descricao[], char preco[],
+                  char cod_barras[], char quantidade[], char filial[],
+                  char id_product[7], char modelo[], char fabricante[],
+                  char especificacoes[], char garantia[]) {
+    if (products_use_case(nome, marca, descricao, preco, cod_barras,
+                          quantidade, filial, id_product) == -1) {
+        fprintf(stderr, "Erro ao cadastrar produto.\n");
+        return -1;
+    }
+    if (equipamento_use_case(id_product, modelo,
+                             fabricante, especificacoes, garantia) == -1) {
+        fprintf(stderr, "Erro ao cadastrar produto.\n");
+        return -1;
+    }
+    return 0;
+}

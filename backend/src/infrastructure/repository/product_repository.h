@@ -10,5 +10,9 @@ int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[],
 
 int create_prod_med (char id_prod[], char id_med[]);
 
+int create_equip(char id_equipamento[], char modelo[], char fabricante[], char especificacoes[], char garantia[]);
+
+int create_prod_equip(char id_prod[], char id_equip[]);
+
 #endif
 

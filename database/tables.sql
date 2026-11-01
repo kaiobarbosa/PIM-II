@@ -74,9 +74,15 @@ id_dermo char(6) unique primary key not null,
 tipo_pele varchar(50) not null,
 volume varchar(50) not null,
 fator_protecao varchar(50) not null,
-indicacao varchar(50) not null,
+indicacao varchar(50) not null
+);
+
+create table produto_dermo (
 id_produto char(6) not null,
-foreign key (id_produto) references produto(id_produto)
+id_dermo char(6) not null,
+constraint fk_id_produto_dermo foreign key (id_produto) references produto (id_produto),
+constraint fk_id_dermo foreign key (id_dermo) references dermocosmetico (id_dermo),
+constraint pk_prod_dermo primary key(id_produto, id_dermo)
 );
 
 create table produto_medicamento (
@@ -274,18 +280,23 @@ LEFT JOIN endereco e ON f.id_endereco = e.id_endereco;
 #INSERT INTO produto_medicamento (id_produto, id_medicamento)
 #values ('ABCD1', 'ACBD2');
 
-#Error Code: 1452. Cannot add or update a child row: a foreign key constraint fails (`pharma_database`.`produto_medicamento`, CONSTRAINT `produto_medicamento_ibfk_2` FOREIGN KEY (`id_medicamento`) REFERENCES `medicamento` (`id_medicamento`))	0.0030 sec
-
+#INSERT INTO equipamentos (id_equipamentos, modelo, fabricante, especificacoes, garantia) values
+#('MNBV1', 'Falcon III', 'HARRIS', 'UHF', '10 anos');
 
 #select * from filial;
 #select * from endereco;
+
 #select * from gerente;
 #select * from diretor;
 #select * from farmaceutico;
 #select * from atendente;
+
 #select * from produto;
 #select * from medicamento;
 #select * from produto_medicamento;
+#select * from equipamentos;
+#select * from produto_equipamento;
+
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
 

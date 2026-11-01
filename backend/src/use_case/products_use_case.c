@@ -84,3 +84,32 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
 
     return 0;
 }
+
+int equipamento_use_case (char id_produto[], char modelo[], char fabricante[], char especificacoes[], char garantia[]){
+
+    if(verify_null_fields_equip(modelo, fabricante, especificacoes, garantia) == -1){
+        fprintf(stderr, "Erro: Campos nulos detectados.\n");
+        return -1;
+    }
+
+    char generated_id[7];
+    int id_status;
+    do {
+        generate_id(generated_id);
+        id_status = check_user_id_exist(generated_id);
+        if (id_status < 0) {
+            fprintf(stderr, "Erro ao verificar disponibilidade do ID do equipamento.\n");
+            return -1;
+        }
+    } while (id_status == 1);
+
+    if(create_equip(generated_id, modelo, fabricante, especificacoes, garantia) == -1){
+        fprintf(stderr, "Erro: Nao foi possivel criar o equipamento.\n");
+        return -1;
+    }else if(create_prod_equip(id_produto, generated_id) == -1){
+        fprintf(stderr, "Erro: Nao foi possivel criar o produto_equipamento.\n");
+        return -1;
+    }
+
+    return 0;
+}

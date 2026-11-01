@@ -4,7 +4,7 @@
 
 int verify_null_fields_products(char nome[], char marca[], char descricao[], char preco[], char cod_barras[], char quantidade[], char filial[]) {
     if (nome[0] == '\0' || marca[0] == '\0' || descricao[0] == '\0' || preco[0] == '\0' || cod_barras[0] == '\0' || quantidade[0] == '\0' || filial[0] == '\0') {
-        return -1; 
+        return -1;
     }
     return 1;
 }
@@ -16,7 +16,14 @@ int verify_null_fields_med(char principio_ativo[], char forma_farmaceutica[], ch
     return 1;
 }
 
-static int is_only_digits(const char *str) {
+int verify_null_fields_equip(char modelo[], char fabricante[], char especificacoes[], char garantia[]){
+    if (modelo[0] == '\0' || fabricante[0] == '\0' || especificacoes[0] == '\0' || garantia[0] == '\0') {
+        return -1;
+    }
+    return 1;
+}
+
+int is_only_digits(const char *str) {
     for (int i = 0; str[i] != '\0'; i++) {
         if (!isdigit((unsigned char)str[i])) {
             return -1; 

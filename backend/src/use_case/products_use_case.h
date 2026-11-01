@@ -7,4 +7,6 @@ int products_use_case(char nome[], char marca[], char descricao[],
 
 int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], char receita[], char tipagem[]);
 
+int equipamento_use_case (char id_produto[], char modelo[], char fabricante[], char especificacoes[], char garantia[]);
+
 #endif

@@ -5,6 +5,10 @@ int verify_null_fields_products(char nome[], char marca[], char descricao[], cha
 
 int verify_null_fields_med(char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], char receita[], char tipagem[]);
 
+int verify_null_fields_equip(char modelo[], char fabricante[], char especificacoes[], char garantia[]);
+
 int verify_numeric_fields_products(char preco[], char quantidade[], char cod_barras[]);
+
+int is_only_digits(const char *str);
 
 #endif
