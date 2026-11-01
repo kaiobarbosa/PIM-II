@@ -2,6 +2,19 @@
 #include <stdlib.h>
 
 #include "backend/src/use_case/products_use_case.h"
+#include "backend/src/presentation/products_presentation.h"
+
+int select_all_products_presentation(ProdutoItem *produtos, int max_produtos) {
+    
+    int result = select_all_products_use_case(produtos, max_produtos);
+    
+    if (result == -1) {
+        fprintf(stderr, "Falha na camada de apresentacao ao resgatar produtos.\\n");
+        return -1;
+    }
+    
+    return result;
+}
 
 int products_presentation(char nome[], char marca[], char descricao[],
                           char preco[], char cod_barras[], char quantidade[],

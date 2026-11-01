@@ -1,6 +1,11 @@
 #ifndef PRODUCTS_PRESENTATION_H
 #define PRODUCTS_PRESENTATION_H
 
+#include "backend/src/infrastructure/repository/product_repository.h"
+
+int select_all_products_presentation(ProdutoItem *produtos, int max_produtos);
+
+
 int products_presentation(char nome[], char marca[], char descricao[],
                           char preco[], char cod_barras[], char quantidade[],
                           char filial[], char id_product[7]);

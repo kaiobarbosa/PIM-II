@@ -1,6 +1,44 @@
 #include "backend/config/database_connector.h"
+#include "backend/src/infrastructure/repository/product_repository.h"
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
+
+int select_all_products(ProdutoItem *produtos, int max_produtos) {
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+   const char *query = "SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos order by nome;";
+    
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao buscar produtos: %s\\n", mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (result == NULL) {
+        mysql_close(conn);
+        return 0;
+    }
+
+    MYSQL_ROW row;
+    int count = 0;
+
+    while ((row = mysql_fetch_row(result)) && count < max_produtos) {
+        if (row[0] != NULL) strcpy(produtos[count].id_produto, row[0]);
+        if (row[1] != NULL) strcpy(produtos[count].nome, row[1]);
+        if (row[2] != NULL) strcpy(produtos[count].preco, row[2]);
+        if (row[3] != NULL) strcpy(produtos[count].quantidade, row[3]);
+        if (row[4] != NULL) strcpy(produtos[count].filial, row[4]);
+        count++;
+    }
+
+    mysql_free_result(result);
+    mysql_close(conn);
+
+    return count;
+}
 
 int create_product(const char *id, const char *nome, const char *marca, const char *descricao, const char *preco, const char *cod_barras, const char *quantidade, const char *filial) {
     MYSQL *conn = connect_to_database();

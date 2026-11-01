@@ -8,6 +8,18 @@
 #include "backend/src/infrastructure/repository/product_repository.h"
 #include "backend/src/utils/generate_id.h"
 
+#include "backend/src/use_case/products_use_case.h"
+
+int select_all_products_use_case(ProdutoItem *produtos, int max_produtos) {
+    int count = select_all_products(produtos, max_produtos);
+    
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos.\\n");
+    }
+    
+    return count;
+}
+
 int products_use_case(char nome[], char marca[], char descricao[],
                       char preco[], char cod_barras[], char quantidade[],
                       char filial[], char id_product[7]) {

@@ -4,6 +4,16 @@
 #include <mysql/mysql.h>
 #include <stdbool.h>
 
+typedef struct {
+    char id_produto[7];
+    char nome[101];      
+    char preco[21];      
+    char quantidade[11]; 
+    char filial[7];      
+} ProdutoItem;
+
+int select_all_products(ProdutoItem *produtos, int max_produtos);
+
 int create_product(const char *id, const char *nome, const char *marca, const char *descricao, const char *preco, const char *cod_barras, const char *quantidade, const char *filial);
 
 int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], bool receita, char tipagem[]);
