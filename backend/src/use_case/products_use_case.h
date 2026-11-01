@@ -7,7 +7,7 @@ int select_all_products_use_case(ProdutoItem *produtos, int max_produtos);
 
 int products_use_case(char nome[], char marca[], char descricao[],
                       char preco[], char cod_barras[], char quantidade[],
-                      char filial[], char id_product[7]);
+                      char filial[], char id_product[7], char id_funcionario[]);
 
 int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], char receita[], char tipagem[]);
 

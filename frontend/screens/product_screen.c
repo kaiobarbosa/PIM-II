@@ -402,17 +402,19 @@ static int refresh_product_list(Product products[], ProdutoItem product_items[],
         snprintf(products[item_index].values[FIELD_PRICE],
                  sizeof(products[item_index].values[FIELD_PRICE]), "%s",
                  product_items[item_index].preco);
-        snprintf(products[item_index].values[FIELD_BRANCH],
-                 sizeof(products[item_index].values[FIELD_BRANCH]), "%s",
-                 product_items[item_index].filial);
         products[item_index].branch_index = -1;
         for (branch_index = 0; branch_index < branch_count; branch_index++) {
             if (strcmp(product_items[item_index].filial,
-                       branches[branch_index].cep) == 0) {
+                       branches[branch_index].id_filial) == 0) {
                 products[item_index].branch_index = branch_index;
                 break;
             }
         }
+        snprintf(products[item_index].values[FIELD_BRANCH],
+                 sizeof(products[item_index].values[FIELD_BRANCH]), "%s",
+                 products[item_index].branch_index >= 0 ?
+                     branches[products[item_index].branch_index].cep :
+                     product_items[item_index].filial);
     }
 
     return product_count;
@@ -452,7 +454,6 @@ int product_screen(char user_id[7], char *user_profile) {
     int products_scroll = 0;
     int selected_product = -1;
 
-    (void)user_id;
     (void)user_profile;
     clear_product(&form_product);
     branch_count = select_all_branches_presentation(branches, MAX_BRANCHES);
@@ -725,7 +726,8 @@ int product_screen(char user_id[7], char *user_profile) {
                             form_product.values[FIELD_CONCENTRATION],
                             form_product.values[FIELD_STRIPE],
                             form_product.values[FIELD_PRESCRIPTION],
-                            form_product.values[FIELD_CLASSIFICATION]);
+                            form_product.values[FIELD_CLASSIFICATION],
+                            user_id);
                     } else if (form_product.type == PRODUCT_EQUIPMENT) {
                         registration_result = product_equip(
                             form_product.values[FIELD_NAME],
@@ -739,7 +741,7 @@ int product_screen(char user_id[7], char *user_profile) {
                             form_product.values[FIELD_MODEL],
                             form_product.values[FIELD_MANUFACTURER],
                             form_product.values[FIELD_SPECIFICATIONS],
-                            form_product.values[FIELD_WARRANTY]);
+                            form_product.values[FIELD_WARRANTY], user_id);
                     } else if (form_product.type == PRODUCT_DERMOCOSMETIC) {
                         registration_result = product_dermo(
                             form_product.values[FIELD_NAME],
@@ -753,7 +755,7 @@ int product_screen(char user_id[7], char *user_profile) {
                             form_product.values[FIELD_SKIN_TYPE],
                             form_product.values[FIELD_VOLUME],
                             form_product.values[FIELD_SUN_PROTECTION],
-                            form_product.values[FIELD_INDICATION]);
+                            form_product.values[FIELD_INDICATION], user_id);
                     } else {
                         registration_result = products_presentation(
                             form_product.values[FIELD_NAME],
@@ -763,7 +765,7 @@ int product_screen(char user_id[7], char *user_profile) {
                             form_product.values[FIELD_BARCODE],
                             form_product.values[FIELD_QUANTITY],
                             branches[form_product.branch_index].id_filial,
-                            form_product.id);
+                            form_product.id, user_id);
                     }
                     if (registration_result == 0) {
                         snprintf(form_product.values[FIELD_BRANCH],

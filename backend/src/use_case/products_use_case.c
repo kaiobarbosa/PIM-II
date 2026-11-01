@@ -22,7 +22,7 @@ int select_all_products_use_case(ProdutoItem *produtos, int max_produtos) {
 
 int products_use_case(char nome[], char marca[], char descricao[],
                       char preco[], char cod_barras[], char quantidade[],
-                      char filial[], char id_product[7]) {
+                      char filial[], char id_product[7], char id_funcionario[]) {
 
     if(verify_null_fields_products(nome, marca, descricao, preco ,cod_barras, quantidade, filial) == -1){
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
@@ -60,6 +60,14 @@ int products_use_case(char nome[], char marca[], char descricao[],
                        cod_barras, quantidade, filial) == -1) {
         fprintf(stderr, "Erro ao criar produto.\n");
         return -1;
+    }else{
+        char id_log[7];
+        generate_id(id_log);
+        if (create_log_product(id_log, "Criação", generated_id,
+                               id_funcionario, filial) == -1) {
+            fprintf(stderr, "Erro ao criar log de produto.\n");
+            return -1;
+        }
     }
 
     snprintf(id_product, 7, "%s", generated_id);

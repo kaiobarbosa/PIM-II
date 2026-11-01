@@ -196,3 +196,29 @@ int create_prod_dermo(char id_prod[], char id_dermo[]){
     return 0;
 
 }
+
+int create_log_product(char id_log[], char acao[], char id_produto[], char id_funcionario[], char id_filial[]){
+
+    MYSQL *conn = connect_to_database();
+    if (conn == NULL) {
+        fprintf(stderr, "Erro ao conectar ao banco de dados.\n");
+        return -1;
+    }
+
+    char query[512];
+    snprintf(query, sizeof(query),
+             "INSERT INTO log_produto (id_log, acao_log, id_produto, funcionario_id, id_filial) "
+             "VALUES ('%s', '%s', '%s', '%s', '%s')",
+             id_log, acao, id_produto, id_funcionario, id_filial);
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao criar log de produto: %s\n",
+                mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    mysql_close(conn);
+    return 0;
+
+}

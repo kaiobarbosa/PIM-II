@@ -28,5 +28,8 @@ int create_dermo(char id_dermo[], char tipo_pele[], char volume[], char fator_pr
 
 int create_prod_dermo(char id_prod[], char id_dermo[]);
 
+int create_log_product(char id_log[], char acao[], char id_produto[],
+                       char id_funcionario[], char id_filial[]);
+
 #endif
 
