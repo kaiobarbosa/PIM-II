@@ -2,7 +2,7 @@
 
 Sistema de consulta e gerenciamento de estoque para uma rede farmacêutica com múltiplas filiais. A proposta é centralizar as informações dos produtos e permitir que os usuários consultem a disponibilidade de um medicamento em toda a rede, inclusive quando ele não estiver disponível na filial atual.
 
-> **Status:** em desenvolvimento. O fluxo inicial de cadastro do diretor já está implementado como protótipo funcional.
+> **Status:** em desenvolvimento. Já há login para os quatro perfis, cadastro de usuários e filiais, listagem de usuários e cadastro de produtos comuns, medicamentos, dermocosméticos e equipamentos.
 
 ## Sobre o projeto
 
@@ -103,9 +103,9 @@ Responsabilidades das camadas:
 - `presentation`: rotas, entrada das requisições e middleware de autenticação/autorização;
 - `use_case`: execução das regras de negócio a partir de uma solicitação.
 
-## Cadastro do diretor — implementado
+## Cadastro e autenticação de usuários — implementados
 
-O primeiro fluxo funcional do projeto é o cadastro inicial do diretor da rede farmacêutica. Ao iniciar o programa, o sistema consulta o banco para verificar se já existe algum diretor. Quando nenhum diretor é encontrado, a tela de cadastro é exibida; quando já existe um diretor, o programa informa que deve iniciar o fluxo normal de login.
+O primeiro uso continua começando pelo cadastro do diretor. Depois disso, o usuário pode entrar pela tela de login. O sistema consulta a view `vw_login_usuarios`, verifica a senha com bcrypt e direciona o usuário conforme o perfil: diretor, gerente, farmacêutico ou atendente. Diretor e gerente podem cadastrar funcionários; os dados do supervisor e da filial são associados à conta criada.
 
 O fluxo implementado é:
 
@@ -113,14 +113,13 @@ O fluxo implementado é:
 main.c
   └── check_first_use()
         ├── check_director_exists()       → consulta COUNT(*) no MySQL
-        ├── nenhum diretor                 → create_account_screen()
-        │     └── register_new_director()
-        │           └── create_director()
-        │                 ├── valida campos, código e e-mail
-        │                 ├── gera ID alfanumérico
-        │                 ├── gera hash bcrypt da senha
-        │                 └── create_new_director() → INSERT no MySQL
-        └── diretor existente              → fluxo de login (a implementar)
+        ├── nenhum diretor                 → cadastro inicial do diretor
+        └── diretor existente              → tela de login
+              └── valida credenciais e perfil → tela inicial correspondente
+
+Cadastro de funcionários:
+  diretor ou gerente → seleção de filial → cadastro de gerente,
+                       farmacêutico ou atendente → INSERT no MySQL
 ```
 
 ### Funcionalidades já implementadas
@@ -140,7 +139,26 @@ main.c
 - geração de salt e hash da senha com bcrypt, usando custo 12;
 - persistência do diretor na tabela `diretor`;
 - mensagens de erro e repetição do formulário quando o cadastro falha;
-- encerramento correto da conexão MySQL e da sessão `ncurses`.
+- encerramento correto da conexão MySQL e da sessão `ncurses`;
+- login dos quatro perfis, validação de senha bcrypt e identificação do usuário autenticado;
+- geração de IDs sem colisão com IDs já existentes nas tabelas de usuários;
+- cadastro de gerentes, farmacêuticos e atendentes por diretor ou gerente;
+- associação dos funcionários à filial e ao supervisor responsável;
+- cadastro e listagem de filiais, com endereço;
+- listagem dos usuários cadastrados com nome, perfil e filial.
+
+## Cadastro de produtos — implementado parcialmente
+
+A tela de produtos permite cadastrar um produto comum e complementar seu cadastro com os atributos específicos de uma das três categorias implementadas. Os dados gerais do produto incluem nome, marca, descrição, preço, código de barras, quantidade e filial. O cadastro gera IDs e grava os dados nas tabelas relacionadas do MySQL.
+
+Tipos com fluxo de cadastro implementado:
+
+- **Produto comum:** dados gerais e vínculo com a filial;
+- **Medicamento:** princípio ativo, forma farmacêutica, concentração, tarja, indicação de receita e tipagem;
+- **Dermocosmético:** tipo de pele, volume, fator de proteção e indicação;
+- **Equipamento:** modelo, fabricante, especificações e garantia.
+
+As categorias perfumaria, higiene, bebês, suplementos e ortopedia continuam no planejamento. Cadastro por CSV, edição, remoção, consulta integrada e movimentação de estoque também não estão descritos como concluídos nesta versão.
 
 ### Arquivos envolvidos no cadastro
 
@@ -287,9 +305,9 @@ O banco utilizado é o MySQL, com o nome `pharma_database`. O script [`database/
 
 O cadastro do diretor utiliza a tabela `diretor`, que possui os campos `id_diretor`, `nome_diretor`, `sobrenome_diretor`, `codigo_interno`, `email_diretor` e `senha_diretor`. O ID é gerado pela aplicação, o e-mail é único e a senha armazenada é o hash bcrypt, não o texto original.
 
-Antes de executar o script, é necessário ter um servidor MySQL disponível e selecionar o banco correto. O esquema ainda está em desenvolvimento e deverá ser revisado conforme as chaves estrangeiras e as tabelas de produtos forem finalizadas.
+Antes de executar o script, é necessário ter um servidor MySQL disponível e selecionar o banco correto. O esquema ainda está em desenvolvimento e pode exigir atualização ao longo da implementação.
 
-> **Atenção:** as credenciais de conexão atualmente estão diretamente em `database_connector.c`. Essa informação deve ser removida do código-fonte e substituída por variáveis de ambiente ou arquivo de configuração antes de qualquer uso real ou compartilhamento do projeto.
+As credenciais são carregadas de um arquivo `.env` pelo módulo `backend/config/env_parser.c`. Configure o arquivo localmente antes de executar a aplicação e não publique seus valores. Os nomes das variáveis esperadas devem ser conferidos em `backend/config/database_connector.c`.
 
 ## Modelo de dados e regras de negócio
 
@@ -323,18 +341,17 @@ O comando `make` gera o executável `pharmaStock`. Dependendo da configuração 
 
 ## Próximas etapas
 
-- implementar o login e o fluxo normal quando já existe um diretor;
-- substituir as credenciais MySQL fixas por variáveis de ambiente ou configuração segura;
+- implementar edição e remoção de usuários, filiais e produtos;
+- implementar cadastro para as demais categorias de produtos previstas;
+- implementar consulta de estoque por produto e por filial;
+- implementar movimentação de estoque e controles específicos para medicamentos;
+- adicionar importação de produtos/estoque por CSV;
 - trocar a montagem direta de SQL por consultas parametrizadas/prepared statements;
-- inicializar a semente do gerador de IDs e tratar colisões de identificadores;
 - finalizar e validar o modelo entidade-relacionamento;
-- implementar cadastro e autenticação dos demais perfis;
-- implementar cadastro, consulta e movimentação de produtos;
-- adicionar importação de estoque por CSV;
 - criar testes automatizados para validações, bcrypt, casos de uso e repositórios.
 
 
-# Comando para execucação
+# Comandos para execução
 
-- make -f backend/config/makefile
+- make -f backend/config/Makefile
 - ./pharmaStock
