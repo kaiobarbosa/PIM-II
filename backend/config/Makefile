@@ -4,6 +4,7 @@ LDFLAGS = -L/opt/homebrew/opt/mysql-client/lib -lmysqlclient -lncurses
 TARGET = pharmaStock
 
 SRC = main.c \
+      backend/config/env_parser.c \
       backend/config/database_connector.c \
       backend/src/infrastructure/repository/query_executor.c \
       backend/src/use_case/director_use_case.c \
