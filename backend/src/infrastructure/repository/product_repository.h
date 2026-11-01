@@ -9,7 +9,7 @@ typedef struct {
     char nome[101];      
     char preco[21];      
     char quantidade[11]; 
-    char filial[7];      
+    char filial[101];
 } ProdutoItem;
 
 int select_all_products(ProdutoItem *produtos, int max_produtos);

@@ -26,11 +26,18 @@ int select_all_products(ProdutoItem *produtos, int max_produtos) {
     int count = 0;
 
     while ((row = mysql_fetch_row(result)) && count < max_produtos) {
-        if (row[0] != NULL) strcpy(produtos[count].id_produto, row[0]);
-        if (row[1] != NULL) strcpy(produtos[count].nome, row[1]);
-        if (row[2] != NULL) strcpy(produtos[count].preco, row[2]);
-        if (row[3] != NULL) strcpy(produtos[count].quantidade, row[3]);
-        if (row[4] != NULL) strcpy(produtos[count].filial, row[4]);
+        snprintf(produtos[count].id_produto,
+                 sizeof(produtos[count].id_produto), "%s",
+                 row[0] != NULL ? row[0] : "");
+        snprintf(produtos[count].nome, sizeof(produtos[count].nome), "%s",
+                 row[1] != NULL ? row[1] : "");
+        snprintf(produtos[count].preco, sizeof(produtos[count].preco), "%s",
+                 row[2] != NULL ? row[2] : "");
+        snprintf(produtos[count].quantidade,
+                 sizeof(produtos[count].quantidade), "%s",
+                 row[3] != NULL ? row[3] : "");
+        snprintf(produtos[count].filial, sizeof(produtos[count].filial), "%s",
+                 row[4] != NULL ? row[4] : "");
         count++;
     }
 
