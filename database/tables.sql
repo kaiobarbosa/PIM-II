@@ -173,6 +173,18 @@ foreign key (id_atendente) references atendente (id_atendente),
 foreign key (id_filial) references filial (id_filial)
 );
 
+create table log_produto (
+id_log char(6) unique not null primary key,
+data_log date,
+acao_log varchar(20) not null,
+id_produto char(6) not null,
+funcionario_id char(6) not null,
+id_filial char(6) not null,
+foreign key (id_produto) references produto (id_produto),
+foreign key (id_filial) references filial (id_filial)
+);
+
+
 #LOGIN USUARIO
 
 CREATE VIEW vw_login_usuarios AS
@@ -254,7 +266,16 @@ FROM atendente a
 LEFT JOIN filial f ON a.id_filial = f.id_filial
 LEFT JOIN endereco e ON f.id_endereco = e.id_endereco;
 
+CREATE OR REPLACE VIEW vw_busca_produtos AS
+SELECT
+    id_produto,
+    nome_produto AS nome,
+    preco,
+    quantidade_produto AS quantidade,
+    id_filial AS filial
+FROM produto;
 
+SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos order by nome;
 
 # ----------------------------------------------------------------------------------------------------
 # ------------------------- TESTES TESTE TESTE TESTE TESTE TESTE TESTE TESTE -------------------------
@@ -291,14 +312,14 @@ LEFT JOIN endereco e ON f.id_endereco = e.id_endereco;
 #select * from farmaceutico;
 #select * from atendente;
 
-#select * from produto;
+#select * from produto order by id_filial;
 #select * from medicamento;
 #select * from produto_medicamento;
 #select * from equipamentos;
 #select * from produto_equipamento;
 #select * from dermocosmetico;
 #select * from produto_dermo;
-
+#select * from log_produto;
 
 #SELECT id_usuario, senha, perfil FROM vw_login_usuarios WHERE email = 'kaio.bragab@gmail.com';
 

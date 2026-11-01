@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "backend/src/domain/products_domain.h"
 #include "backend/src/utils/verify_user_informations.h"
@@ -8,9 +9,61 @@
 #include "backend/src/infrastructure/repository/product_repository.h"
 #include "backend/src/utils/generate_id.h"
 
+#include "backend/src/use_case/products_use_case.h"
+
+int select_all_products_use_case(ProdutoItem *produtos, int max_produtos) {
+    int count = select_all_products(produtos, max_produtos);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos.\\n");
+    }
+
+    return count;
+}
+
+int select_products_by_name_use_case(ProdutoItem *produtos, int max_produtos, const char *nome) {
+    int count = select_products_by_name(produtos, max_produtos, nome);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos por nome.\\n");
+    }
+
+    return count;
+}
+
+int select_products_by_filial_use_case(ProdutoItem *produtos, int max_produtos, const char *filial) {
+    int count = select_products_by_filial(produtos, max_produtos, filial);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos por filial.\\n");
+    }
+
+    return count;
+}
+
+int get_quantidade_produto_by_id_use_case(const char *id_produto, const char *filial) {
+    int quantidade = get_quantidade_produto_by_id(id_produto, filial);
+
+    if (quantidade == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar a quantidade do produto.\\n");
+    }
+
+    return quantidade;
+}
+
+int select_products_by_filial_and_name_use_case(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome) {
+    int count = select_products_by_filial_and_name(produtos, max_produtos, filial, nome);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos por filial e nome.\\n");
+    }
+
+    return count;
+}
+
 int products_use_case(char nome[], char marca[], char descricao[],
                       char preco[], char cod_barras[], char quantidade[],
-                      char filial[], char id_product[7]) {
+                      char filial[], char id_product[7], char id_funcionario[]) {
 
     if(verify_null_fields_products(nome, marca, descricao, preco ,cod_barras, quantidade, filial) == -1){
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
@@ -21,7 +74,7 @@ int products_use_case(char nome[], char marca[], char descricao[],
     }
 
     int numeric_status = verify_numeric_fields_products(preco, quantidade, cod_barras);
-    
+
     if (numeric_status == -1) {
         fprintf(stderr, "Erro: O preço possui caracteres inválidos.\n");
         return -1;
@@ -48,6 +101,14 @@ int products_use_case(char nome[], char marca[], char descricao[],
                        cod_barras, quantidade, filial) == -1) {
         fprintf(stderr, "Erro ao criar produto.\n");
         return -1;
+    }else{
+        char id_log[7];
+        generate_id(id_log);
+        if (create_log_product(id_log, "Criação", generated_id,
+                               id_funcionario, filial) == -1) {
+            fprintf(stderr, "Erro ao criar log de produto.\n");
+            return -1;
+        }
     }
 
     snprintf(id_product, 7, "%s", generated_id);
@@ -62,7 +123,7 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
         return -1;
     }
-    
+
     bool receita_bool;
 
     if (strcmp(receita, "sim") == 0 || strcmp(receita, "1") == 0) {
@@ -153,4 +214,65 @@ int dermocosmetico_use_case(char id_produto[], char tipo_pele[], char volume[], 
     }
 
     return 0;
+}
+
+int baixa_produto_estoque_use_case(char id_produto[], char quantidade[],
+                                   char filial[], char id_funcionario[]) {
+    if (verify_null_fields_baixa(id_produto, quantidade, filial) == -1 ||
+        id_funcionario[0] == '\0') {
+        fprintf(stderr, "Erro: Campos nulos detectados.\n");
+        return -1;
+    } else if (verify_internal_code_format(filial) == 0) {
+        fprintf(stderr, "Erro: Id da filial com formato incorreto");
+        return -1;
+    }
+
+    int numeric_status = verify_numeric_fields_baixa(quantidade);
+
+    if (numeric_status == -1) {
+        fprintf(stderr, "Erro: A quantidade deve conter apenas números inteiros.\n");
+        return -1;
+    }
+
+    int quantidade_estoque =
+        get_quantidade_produto_by_id_use_case(id_produto, filial);
+    if (quantidade_estoque < 0) {
+        fprintf(stderr, "Erro ao consultar a quantidade em estoque.\n");
+        return -1;
+    }
+
+    int quantidade_baixa = atoi(quantidade);
+
+    if (quantidade_baixa <= 0) {
+        fprintf(stderr, "Erro: A quantidade deve ser maior que zero.\n");
+        return -1;
+    } else if (quantidade_baixa > quantidade_estoque) {
+        fprintf(stderr, "Erro: A quantidade a ser baixada é maior do que a quantidade em estoque.\n");
+        return -1;
+    }
+
+    if (baixa_produto_estoque(id_produto, quantidade, filial) == -1) {
+        fprintf(stderr, "Erro: Nao foi possivel realizar a baixa do produto.\n");
+        return -1;
+    }
+
+    char id_log[7];
+    generate_id(id_log);
+    if (create_log_product(id_log, "Venda", id_produto, id_funcionario,
+                           filial) == -1) {
+        fprintf(stderr, "Erro ao criar log da venda do produto.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int select_produtos_vendidos_by_user_id_use_case(const char *id_user, ProdutoItem *produtos, int max_produtos) {
+    int count = get_produtos_vendidos_by_user_id(id_user, produtos, max_produtos);
+
+    if (count == -1) {
+        fprintf(stderr, "Erro de comunicação com o banco ao buscar os produtos vendidos pelo usuário.\\n");
+    }
+
+    return count;
 }

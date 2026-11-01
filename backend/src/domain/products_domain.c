@@ -65,3 +65,14 @@ int verify_numeric_fields_products(char preco[], char quantidade[], char cod_bar
     
     return 1; 
 }
+
+int verify_null_fields_baixa(char id_produto[], char quantidade[], char filial[]) {
+    if (id_produto[0] == '\0' || quantidade[0] == '\0' || filial[0] == '\0') {
+        return -1;
+    }
+    return 1;
+}
+
+int verify_numeric_fields_baixa(char quantidade[]) {
+    return is_only_digits(quantidade) == 1 ? 1 : -1;
+}

@@ -4,6 +4,22 @@
 #include <mysql/mysql.h>
 #include <stdbool.h>
 
+typedef struct {
+    char id_produto[7];
+    char nome[101];      
+    char preco[21];      
+    char quantidade[11]; 
+    char filial[101];
+} ProdutoItem;
+
+int select_all_products(ProdutoItem *produtos, int max_produtos);
+int get_quantidade_produto_by_id(const char *id_produto, const char *filial);
+int baixa_produto_estoque(const char *id_produto, const char *quantidade,
+                          const char *filial);
+int select_products_by_name(ProdutoItem *produtos, int max_produtos, const char *nome);
+int select_products_by_filial(ProdutoItem *produtos, int max_produtos, const char *filial);
+int select_products_by_filial_and_name(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome);
+
 int create_product(const char *id, const char *nome, const char *marca, const char *descricao, const char *preco, const char *cod_barras, const char *quantidade, const char *filial);
 
 int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], bool receita, char tipagem[]);
@@ -18,5 +34,9 @@ int create_dermo(char id_dermo[], char tipo_pele[], char volume[], char fator_pr
 
 int create_prod_dermo(char id_prod[], char id_dermo[]);
 
-#endif
+int create_log_product(char id_log[], char acao[], char id_produto[],
+                       char id_funcionario[], char id_filial[]);
 
+int get_produtos_vendidos_by_user_id(const char *id_user, ProdutoItem *produtos, int max_produtos);
+
+#endif
