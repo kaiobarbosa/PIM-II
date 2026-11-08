@@ -9,8 +9,20 @@
 #include "backend/src/infrastructure/repository/pharmacist_repository.h"
 #include "backend/src/infrastructure/repository/attendant_repository.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
+#include "backend/src/infrastructure/repository/access_control_repository.h"
 
 int create_new_attendant (char name_attendant[], char last_name_attendant[], char email_attendant[], char password_attendant[], char id_branch[], char id_supervisor[]) {
+
+    char supervisor_profile[20] = "";
+    char supervisor_branch[7] = "";
+    if (get_user_access_context(id_supervisor, supervisor_profile,
+                                sizeof(supervisor_profile), supervisor_branch) != 1 ||
+        (strcmp(supervisor_profile, "diretor") != 0 &&
+         strcmp(supervisor_profile, "gerente") != 0) ||
+        !user_can_create_product_in_branch(id_supervisor, id_branch)) {
+        fprintf(stderr, "Erro: Sem permissão para cadastrar atendente nesta filial.\n");
+        return -1;
+    }
 
     if(verify_null_fields_attendant(name_attendant, last_name_attendant, email_attendant, password_attendant, id_branch, id_supervisor) == 0){
         fprintf(stderr, "Erro: Campos nulos detectados.\n");

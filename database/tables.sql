@@ -304,6 +304,66 @@ SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos order 
 #INSERT INTO equipamentos (id_equipamentos, modelo, fabricante, especificacoes, garantia) values
 #('MNBV1', 'Falcon III', 'HARRIS', 'UHF', '10 anos');
 
+-- --------------------------------------------------------------------------------------
+-- 1. PRODUTOS COMUNS (Não necessitam de classificação, vão apenas para a tabela base)
+-- --------------------------------------------------------------------------------------
+#INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) VALUES
+#('PROD01', 'Energetico Red Bull', 'Red Bull', 'Lata de energetico 250ml', '11.99', '7891234567890', '50', 'AGWX2M'),
+#('PROD02', 'Fralda Pampers M', 'Pampers', 'Fralda pacote com 40 unidades', '59.90', '7891234567891', '30', 'AGWX2M');
+
+
+-- --------------------------------------------------------------------------------------
+-- 2. MEDICAMENTOS (Preenchimento das 3 tabelas exigidas)
+-- Lembrete: receita bool -> 0 = Precisa | 1 = Não precisa
+-- --------------------------------------------------------------------------------------
+#INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) VALUES
+#('PROD03', 'Paracetamol', 'Neo Quimica', 'Paracetamol 750mg 20 cp', '15.50', '7891234567892', '100', 'AGWX2M'),
+#('PROD04', 'Amoxicilina', 'Medley', 'Amoxicilina 500mg 21 capsulas', '25.00', '7891234567893', '45', 'AGWX2M'),
+#('PROD05', 'Omeprazol', 'EMS', 'Omeprazol 20mg 28 capsulas', '18.90', '7891234567894', '60', 'AGWX2M');
+
+#INSERT INTO medicamento (id_medicamento, principio_ativo, forma_farmaceutica, concentracao, tarja, receita, tipagem) VALUES
+#('MED001', 'Paracetamol', 'Comprimido', '750mg', 'Sem Tarja', 1, 'Generico'),
+#('MED002', 'Amoxicilina', 'Capsula', '500mg', 'Vermelha', 0, 'Generico'),
+#'MED003', 'Omeprazol', 'Capsula', '20mg', 'Vermelha', 1, 'Generico');
+
+#INSERT INTO produto_medicamento (id_produto, id_medicamento) VALUES
+#('PROD03', 'MED001'),
+#('PROD04', 'MED002'),
+#('PROD05', 'MED003');
+
+
+-- --------------------------------------------------------------------------------------
+-- 3. DERMOCOSMÉTICOS (Preenchimento das 3 tabelas exigidas)
+-- --------------------------------------------------------------------------------------
+#INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) VALUES
+#('PROD06', 'Protetor Solar Anthelios', 'La Roche-Posay', 'Protetor solar facial FPS 60', '89.90', '7891234567895', '25', 'AGWX2M'),
+#('PROD07', 'Locao Hidratante', 'CeraVe', 'Hidratante para pele seca 200ml', '75.50', '7891234567896', '35', 'AGWX2M');
+
+#INSERT INTO dermocosmetico (id_dermo, tipo_pele, volume, fator_protecao, indicacao) VALUES
+#('DERM01', 'Todos os tipos', '50g', 'FPS 60', 'Protecao Solar Facial'),
+#('DERM02', 'Seca e Extra Seca', '200ml', 'Sem FPS', 'Hidratacao Corporal e Facial');
+
+#INSERT INTO produto_dermo (id_produto, id_dermo) VALUES
+#('PROD06', 'DERM01'),
+#('PROD07', 'DERM02');
+
+
+-- --------------------------------------------------------------------------------------
+-- 4. EQUIPAMENTOS (Preenchimento das 3 tabelas exigidas)
+-- --------------------------------------------------------------------------------------
+INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) VALUES
+('PROD08', 'Termometro Digital', 'G-Tech', 'Termometro clinico digital branco', '22.00', '7891234567897', '40', 'AGWX2M'),
+('PROD09', 'Aparelho de Pressao', 'Omron', 'Esfigmomanometro digital de braco', '199.90', '7891234567898', '15', 'AGWX2M');
+
+INSERT INTO equipamentos (id_equipamentos, modelo, fabricante, especificacoes, garantia) VALUES
+('EQP001', 'TH100', 'G-Tech', 'Medicao em graus Celsius, bipe sonoro', '1 ano'),
+('EQP002', 'HEM-7122', 'Omron', 'Digital automatico, detector de arritmia', '5 anos');
+
+INSERT INTO produto_equipamento (id_produto, id_equipamentos) VALUES
+('PROD08', 'EQP001'),
+('PROD09', 'EQP002');
+
+
 #select * from filial;
 #select * from endereco;
 

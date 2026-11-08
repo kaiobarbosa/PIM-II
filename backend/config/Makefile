@@ -22,6 +22,7 @@ SRC = main.c \
       backend/src/utils/verify_user_informations.c\
       backend/src/infrastructure/repository/login_repository.c\
       frontend/screens/home_screen.c\
+      frontend/screens/profile_screen.c\
       frontend/components/sidebar.c\
       frontend/screens/employees_screen.c\
       backend/src/presentation/manager_presentation.c\
@@ -36,6 +37,10 @@ SRC = main.c \
       backend/src/use_case/products_use_case.c\
       backend/src/domain/products_domain.c\
       backend/src/infrastructure/repository/product_repository.c\
+      backend/src/infrastructure/repository/profile_repository.c\
+      backend/src/infrastructure/repository/access_control_repository.c\
+      backend/src/use_case/profile_use_case.c\
+      backend/src/presentation/profile_presentation.c\
       backend/src/infrastructure/repository/manager_repository.c\
       backend/src/domain/manager_domain.c\
       backend/src/presentation/pharmacist_presentation.c\

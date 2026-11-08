@@ -5,8 +5,17 @@
 #include "backend/src/utils/generate_id.h"
 #include "backend/src/use_case/branch_use_case.h"
 #include "backend/src/infrastructure/repository/branch_repository.h"
+#include "backend/src/infrastructure/repository/access_control_repository.h"
 
 int create_new_branch(char id_user[], char cep[], char logradouro[], char numero[], char complemento[], char bairro[], char cidade[], char estado[]) {
+    char profile[20] = "";
+    char branch_id[7] = "";
+    if (get_user_access_context(id_user, profile, sizeof(profile), branch_id) != 1 ||
+        strcmp(profile, "diretor") != 0) {
+        fprintf(stderr, "Erro: Apenas o diretor pode cadastrar filiais.\n");
+        return -1;
+    }
+
     if (verify_null_fields_branch(id_user, cep, logradouro, numero, complemento, bairro, cidade, estado) == 0) {
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
         return -1;

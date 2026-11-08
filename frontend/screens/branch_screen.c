@@ -102,7 +102,8 @@ static char *get_branch_value(Branch *branch, BranchField field,
 
 static void draw_branch_list(int screen_height, int hero_left, int hero_width,
                              int divider_y, Branch branches[],
-                             int branch_count, int focus, int scroll_offset) {
+                             int branch_count, int focus, int scroll_offset,
+                             int can_create) {
     int row;
     int content_width = hero_width - 8;
     int visible_count = (screen_height - divider_y - 9) / 2;
@@ -112,12 +113,10 @@ static void draw_branch_list(int screen_height, int hero_left, int hero_width,
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvhline(4, hero_left + 2, ACS_HLINE, hero_width - 4);
 
-    if (focus == 0) {
-        attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    }
-    mvaddnstr(6, hero_left + 4, "+ Cadastrar nova filial", hero_width - 8);
-    if (focus == 0) {
-        attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    if (can_create) {
+        if (focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+        mvaddnstr(6, hero_left + 4, "+ Cadastrar nova filial", hero_width - 8);
+        if (focus == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
 
     mvhline(divider_y, hero_left, ACS_HLINE, hero_width);
@@ -252,17 +251,18 @@ static void draw_branch_screen(int screen_height, int screen_width,
                               int form_editing, const BranchField fields[],
                               int field_count, int sidebar_focus,
                               int is_in_sidebar, const char *status_message,
-                              int status_is_error) {
+                              int status_is_error, const char *user_profile) {
     erase();
     box(stdscr, 0, 0);
     mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
     draw_sidebar(screen_height, sidebar_width,
-                 is_in_sidebar ? sidebar_focus : -1);
+                 is_in_sidebar ? sidebar_focus : -1, user_profile);
 
     if (screen == SCREEN_LIST) {
         draw_branch_list(screen_height, hero_left, hero_width, divider_y,
                          branches, branch_count,
-                         is_in_sidebar ? -1 : branch_focus, list_scroll);
+                         is_in_sidebar ? -1 : branch_focus, list_scroll,
+                         strcmp(user_profile, "diretor") == 0);
     } else if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
         draw_branch_form(screen_height, hero_left, hero_width, divider_y,
                          form_branch, screen == SCREEN_EDIT_FORM, form_focus,
@@ -320,8 +320,12 @@ int branch_screen(char user_id[7], char *user_profile) {
     BranchScreen screen = SCREEN_LIST;
     char status_message[80] = "";
     int status_is_error = 0;
+    int director_mode;
 
-    (void) user_profile;
+    if (user_profile == NULL ||
+        (strcmp(user_profile, "diretor") != 0 &&
+         strcmp(user_profile, "gerente") != 0)) return APP_SCREEN_HOME;
+    director_mode = strcmp(user_profile, "diretor") == 0;
 
     branch_count = select_all_branches_presentation(branch_items,
                                                      MAX_BRANCHES);
@@ -353,6 +357,7 @@ int branch_screen(char user_id[7], char *user_profile) {
     divider_y = 1 + (screen_height - 2) / 3;
     keypad(stdscr, TRUE);
     clear_branch(&form_branch);
+    if (!director_mode && branch_count > 0) branch_focus = 1;
 
     while (1) {
         BranchField fields[MAX_BRANCH_FIELDS];
@@ -368,7 +373,7 @@ int branch_screen(char user_id[7], char *user_profile) {
                            action_focus, confirmation_focus, &form_branch,
                            form_focus, form_editing, fields, field_count,
                            sidebar_focus, is_in_sidebar, status_message,
-                           status_is_error);
+                           status_is_error, user_profile);
 
         character = getch();
         character_is_confirm = character == '\n' || character == KEY_ENTER;
@@ -377,9 +382,9 @@ int branch_screen(char user_id[7], char *user_profile) {
             if (character == 27) {
                 return APP_SCREEN_HOME;
             } else if (character == KEY_UP) {
-                sidebar_focus = sidebar_focus == 0 ? 4 : sidebar_focus - 1;
+                sidebar_focus = sidebar_move_focus(user_profile, sidebar_focus, -1);
             } else if (character == KEY_DOWN) {
-                sidebar_focus = sidebar_focus == 4 ? 0 : sidebar_focus + 1;
+                sidebar_focus = sidebar_move_focus(user_profile, sidebar_focus, 1);
             } else if (character == KEY_RIGHT ||
                        (character_is_confirm && sidebar_focus == 3)) {
                 is_in_sidebar = 0;
@@ -389,6 +394,8 @@ int branch_screen(char user_id[7], char *user_profile) {
                 return APP_SCREEN_EMPLOYEES;
             } else if (character_is_confirm && sidebar_focus == 1) {
                 return APP_SCREEN_PRODUCTS;
+            } else if (character_is_confirm && sidebar_focus == 4) {
+                return APP_SCREEN_PROFILE;
             }
             continue;
         }
@@ -401,12 +408,17 @@ int branch_screen(char user_id[7], char *user_profile) {
                 is_in_sidebar = 1;
                 continue;
             } else if (character == KEY_UP) {
-                branch_focus = branch_focus == 0 ? last_focus : branch_focus - 1;
+                if (!director_mode && branch_count > 0)
+                    branch_focus = branch_focus <= 1 ? last_focus : branch_focus - 1;
+                else branch_focus = branch_focus == 0 ? last_focus : branch_focus - 1;
             } else if (character == KEY_DOWN) {
-                branch_focus = branch_focus == last_focus ? 0 : branch_focus + 1;
+                if (!director_mode && branch_count > 0)
+                    branch_focus = branch_focus >= last_focus ? 1 : branch_focus + 1;
+                else branch_focus = branch_focus == last_focus ? 0 : branch_focus + 1;
             } else if (character == KEY_RIGHT) {
-                branch_focus = branch_focus == 0 ? last_focus : 0;
-            } else if (character_is_confirm && branch_focus == 0) {
+                if (director_mode)
+                    branch_focus = branch_focus == 0 ? last_focus : 0;
+            } else if (character_is_confirm && branch_focus == 0 && director_mode) {
                 clear_branch(&form_branch);
                 status_message[0] = '\0';
                 status_is_error = 0;
@@ -416,6 +428,12 @@ int branch_screen(char user_id[7], char *user_profile) {
             } else if (character_is_confirm && branch_focus > 0 &&
                        branch_focus <= branch_count &&
                        branches[branch_focus - 1].active) {
+                if (!director_mode) {
+                    snprintf(status_message, sizeof(status_message),
+                             "Acesso somente para visualizacao.");
+                    status_is_error = 0;
+                    continue;
+                }
                 selected_branch = branch_focus - 1;
                 action_focus = 0;
                 screen = SCREEN_ACTIONS;

@@ -7,8 +7,17 @@
 #include "backend/src/utils/generate_id.h"
 #include "backend/src/domain/validation/password_crypt.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
+#include "backend/src/infrastructure/repository/access_control_repository.h"
 
 int create_new_manager (char name_manager[], char last_name_manager[], char internal_code_manager[], char branch_manager[], char email_manager[], char password_manager[], char id_director[]) {
+    char supervisor_profile[20] = "";
+    char supervisor_branch[7] = "";
+    if (get_user_access_context(id_director, supervisor_profile,
+                                sizeof(supervisor_profile), supervisor_branch) != 1 ||
+        strcmp(supervisor_profile, "diretor") != 0) {
+        fprintf(stderr, "Erro: Apenas o diretor pode cadastrar gerentes.\n");
+        return -1;
+    }
     
     if(verify_null_fields_manager(name_manager, last_name_manager, internal_code_manager, branch_manager, email_manager, password_manager, id_director) == 0) {
         fprintf(stderr, "Erro: Campos nulos detectados.\n");

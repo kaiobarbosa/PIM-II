@@ -423,7 +423,7 @@ int get_produtos_vendidos_by_user_id(const char *id_user,
     char query[512];
     snprintf(query, sizeof(query),
              "SELECT p.id_produto, p.nome_produto, p.preco, "
-             "p.quantidade_produto, l.id_filial "
+             "p.quantidade_produto, l.id_filial, l.data_log "
              "FROM log_produto l "
              "JOIN produto p ON p.id_produto = l.id_produto "
              "WHERE l.funcionario_id = '%s' AND l.acao_log = 'Venda' "
@@ -458,6 +458,9 @@ int get_produtos_vendidos_by_user_id(const char *id_user,
                  row[3] != NULL ? row[3] : "");
         snprintf(produtos[count].filial, sizeof(produtos[count].filial), "%s",
                  row[4] != NULL ? row[4] : "");
+        snprintf(produtos[count].data_venda,
+                 sizeof(produtos[count].data_venda), "%s",
+                 row[5] != NULL ? row[5] : "");
         count++;
     }
 

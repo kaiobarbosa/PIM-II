@@ -8,8 +8,19 @@
 #include "backend/src/utils/verify_user_informations.h"
 #include "backend/src/infrastructure/repository/pharmacist_repository.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
+#include "backend/src/infrastructure/repository/access_control_repository.h"
 
 int create_new_pharmacist (char name_pharmacist[], char last_name_pharmacist[], char internal_code_pharmacist[], char crf[], char email_pharmacist[], char password_pharmacist[], char id_branch[], char id_supervisor[]) {
+    char supervisor_profile[20] = "";
+    char supervisor_branch[7] = "";
+    if (get_user_access_context(id_supervisor, supervisor_profile,
+                                sizeof(supervisor_profile), supervisor_branch) != 1 ||
+        (strcmp(supervisor_profile, "diretor") != 0 &&
+         strcmp(supervisor_profile, "gerente") != 0) ||
+        !user_can_create_product_in_branch(id_supervisor, id_branch)) {
+        fprintf(stderr, "Erro: Sem permissão para cadastrar farmacêutico nesta filial.\n");
+        return -1;
+    }
     
     if(verify_null_fields_pharmacist(name_pharmacist, last_name_pharmacist, internal_code_pharmacist, crf, email_pharmacist, password_pharmacist, id_branch, id_supervisor) == 0) {
         fprintf(stderr, "Erro: Campos nulos detectados.\n");

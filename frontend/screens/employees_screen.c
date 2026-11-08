@@ -11,6 +11,7 @@
 #include "backend/src/presentation/attendant_presentation.h"
 #include "backend/src/presentation/branch_presentation.h"
 #include "backend/src/presentation/login_presentation.h"
+#include "backend/src/presentation/profile_presentation.h"
 
 #define MIN_SCREEN_HEIGHT 24
 #define MIN_SCREEN_WIDTH 70
@@ -136,6 +137,12 @@ static void clear_employee(Employee *employee) {
     memset(employee, 0, sizeof(*employee));
     employee->role = ROLE_CLERK;
     employee->active = 1;
+}
+
+static EmployeeRole next_employee_role(EmployeeRole role, int direction,
+                                      int manager_mode) {
+    if (manager_mode) return role == ROLE_PHARMACIST ? ROLE_CLERK : ROLE_PHARMACIST;
+    return (EmployeeRole)((role + direction + ROLE_COUNT) % ROLE_COUNT);
 }
 
 static void set_employee_branch(Employee *employee, const BranchItem branches[],
@@ -336,11 +343,12 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
                         Employee *form_employee, int form_focus,
                         int form_editing, const FormField form_fields[],
                         int form_field_count, int confirmation_focus,
-                        const char *status_message, int status_is_error) {
+                        const char *status_message, int status_is_error,
+                        const char *user_profile) {
     erase();
     box(stdscr, 0, 0);
     mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
-    draw_sidebar(screen_height, sidebar_width, 2);
+    draw_sidebar(screen_height, sidebar_width, 2, user_profile);
 
     if (screen == SCREEN_LIST) {
         draw_employee_list(screen_height, hero_left, hero_width, divider_y,
@@ -409,12 +417,35 @@ int employee_screen(char user_id[7], char *user_profile) {
     EmployeeScreen screen = SCREEN_LIST;
     char status_message[100] = "";
     int status_is_error = 0;
+    int manager_mode = user_profile != NULL &&
+                       strcmp(user_profile, "gerente") == 0;
+    int manager_branch_index = -1;
+    ProfileInfo current_user = {0};
 
-    (void) user_profile;
+    if (!sidebar_item_allowed(user_profile, 2)) return APP_SCREEN_HOME;
+
+    if (manager_mode &&
+        get_profile_presentation(user_id, user_profile, &current_user) != 1)
+        return APP_SCREEN_HOME;
+    if (manager_mode) {
+        for (int index = 0; index < branch_count; index++) {
+            if (strcmp(branches[index].cep, current_user.branch) == 0) {
+                manager_branch_index = index;
+                break;
+            }
+        }
+        if (manager_branch_index < 0) return APP_SCREEN_HOME;
+        selected_branch = manager_branch_index;
+    }
 
     if (employee_count < 0) employee_count = 0;
-    for (int index = 0; index < employee_count; index++) {
-        Employee *employee = &employees[index];
+    {
+        int visible_employee_count = 0;
+        for (int index = 0; index < employee_count; index++) {
+        Employee *employee;
+        if (manager_mode && strcmp(users[index].filial, current_user.branch) != 0)
+            continue;
+        employee = &employees[visible_employee_count++];
         snprintf(employee->user_id, sizeof(employee->user_id), "%s",
                  users[index].id_usuario);
         snprintf(employee->full_name, sizeof(employee->full_name), "%s",
@@ -432,6 +463,8 @@ int employee_screen(char user_id[7], char *user_profile) {
             employee->role = ROLE_PHARMACIST;
         }
         employee->active = 1;
+        }
+        employee_count = visible_employee_count;
     }
 
     // --- VARIÁVEIS DA SIDEBAR ---
@@ -469,14 +502,16 @@ int employee_screen(char user_id[7], char *user_profile) {
                     action_focus, list_scroll,
                     &form_employee, form_focus,
                     form_editing, visible_fields, visible_field_count,
-                    confirmation_focus, status_message, status_is_error);
+                    confirmation_focus, status_message, status_is_error,
+                    user_profile);
 
         // 2. Desenha as linhas divisórias por cima do conteúdo
         mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
         mvhline(divider_y, hero_left, ACS_HLINE, screen_width - hero_left - 1);
 
         // 3. Desenha a sidebar (Envia -1 se o foco estiver na direita para tirar o destaque visual)
-        draw_sidebar(screen_height, sidebar_width, is_in_sidebar ? sidebar_focus : -1);
+        draw_sidebar(screen_height, sidebar_width,
+                     is_in_sidebar ? sidebar_focus : -1, user_profile);
         
         refresh(); // Atualiza a tela após todas as sobreposições
 
@@ -487,9 +522,9 @@ int employee_screen(char user_id[7], char *user_profile) {
             if (character == 27) { // ESC
                 return APP_SCREEN_HOME;
             } else if (character == KEY_UP) {
-                sidebar_focus = sidebar_focus == 0 ? 4 : sidebar_focus - 1;
+                sidebar_focus = sidebar_move_focus(user_profile, sidebar_focus, -1);
             } else if (character == KEY_DOWN) {
-                sidebar_focus = sidebar_focus == 4 ? 0 : sidebar_focus + 1;
+                sidebar_focus = sidebar_move_focus(user_profile, sidebar_focus, 1);
             } else if (character == KEY_RIGHT) {
                 is_in_sidebar = 0; // Transfere o controle do teclado para a lista de funcionários
             } else if (character == '\n' || character == KEY_ENTER) {
@@ -501,6 +536,8 @@ int employee_screen(char user_id[7], char *user_profile) {
                     return APP_SCREEN_BRANCHES;
                 } else if (sidebar_focus == 1) {
                     return APP_SCREEN_PRODUCTS;
+                } else if (sidebar_focus == 4) {
+                    return APP_SCREEN_PROFILE;
                 }
             }
             continue; // Pula a lógica do formulário para não misturar os controles
@@ -526,7 +563,9 @@ int employee_screen(char user_id[7], char *user_profile) {
             } else if ((character == '\n' || character == KEY_ENTER) &&
                        list_focus == 0) {
                 clear_employee(&form_employee);
-                selected_branch = branch_count > 0 ? 0 : -1;
+                form_employee.role = manager_mode ? ROLE_PHARMACIST : ROLE_CLERK;
+                selected_branch = manager_mode ? manager_branch_index :
+                                  branch_count > 0 ? 0 : -1;
                 set_employee_branch(&form_employee, branches, branch_count,
                                     selected_branch);
                 status_message[0] = '\0';
@@ -630,12 +669,12 @@ int employee_screen(char user_id[7], char *user_profile) {
             } else if (character == KEY_LEFT || character == KEY_RIGHT) {
                 if (form_focus == 0) {
                     int direction = character == KEY_RIGHT ? 1 : -1;
-                    form_employee.role = (EmployeeRole)
-                        ((form_employee.role + direction + ROLE_COUNT) % ROLE_COUNT);
+                    form_employee.role = next_employee_role(
+                        form_employee.role, direction, manager_mode);
                     form_focus = 0;
                 } else if (form_focus < field_count &&
                            fields[form_focus] == FIELD_BRANCH &&
-                           branch_count > 0) {
+                           branch_count > 0 && !manager_mode) {
                     if (character == KEY_RIGHT) {
                         selected_branch = (selected_branch + 1) % branch_count;
                     } else {
@@ -650,14 +689,16 @@ int employee_screen(char user_id[7], char *user_profile) {
                 }
             } else if (character == '\n' || character == KEY_ENTER) {
                 if (form_focus < field_count && fields[form_focus] == FIELD_ROLE) {
-                    form_employee.role = (EmployeeRole)
-                        ((form_employee.role + 1) % ROLE_COUNT);
+                    form_employee.role = next_employee_role(
+                        form_employee.role, 1, manager_mode);
                 } else if (form_focus < field_count &&
                            fields[form_focus] == FIELD_BRANCH) {
                     if (branch_count > 0) {
-                        selected_branch = (selected_branch + 1) % branch_count;
-                        set_employee_branch(&form_employee, branches,
-                                            branch_count, selected_branch);
+                        if (!manager_mode) {
+                            selected_branch = (selected_branch + 1) % branch_count;
+                            set_employee_branch(&form_employee, branches,
+                                                branch_count, selected_branch);
+                        }
                     } else {
                         snprintf(status_message, sizeof(status_message),
                                  "Nenhuma filial disponivel para selecao.");
