@@ -2,7 +2,24 @@
 #include <string.h>
 #include <ncurses.h>
 
-void draw_sidebar(int screen_height, int sidebar_width, int focus) {
+int sidebar_item_allowed(const char *user_profile, int item) {
+    if (user_profile == NULL || strcmp(user_profile, "diretor") == 0 ||
+        strcmp(user_profile, "gerente") == 0) return item >= 0 && item < 5;
+    return item == 0 || item == 1 || item == 4;
+}
+
+int sidebar_move_focus(const char *user_profile, int current, int direction) {
+    int candidate = current;
+    int attempts;
+    for (attempts = 0; attempts < 5; attempts++) {
+        candidate = (candidate + direction + 5) % 5;
+        if (sidebar_item_allowed(user_profile, candidate)) return candidate;
+    }
+    return current;
+}
+
+void draw_sidebar(int screen_height, int sidebar_width, int focus,
+                  const char *user_profile) {
     // 1. Adicionamos "Filiais" na lista (agora possui 5 itens)
     static const char *menu_items[] = {
         "Home", "Produtos", "Funcionarios", "Filiais", "Perfil"
@@ -17,6 +34,7 @@ void draw_sidebar(int screen_height, int sidebar_width, int focus) {
     // 2. Aumentamos o limite do loop para 5 (item < 5)
     for (item = 0; item < 5; item++) {
         int row = 8 + item * 3;
+        if (!sidebar_item_allowed(user_profile, item)) continue;
         if (focus == item) {
             attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         }

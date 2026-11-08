@@ -4,6 +4,7 @@
 
 #include "backend/src/presentation/branch_presentation.h"
 #include "backend/src/presentation/products_presentation.h"
+#include "backend/src/presentation/profile_presentation.h"
 #include "frontend/components/sidebar.h"
 #include "frontend/screens/employees_screen.h"
 #include "frontend/screens/home_screen.h"
@@ -155,14 +156,14 @@ static void draw_search_results(int screen_height, int hero_left,
 
 static void draw_product_actions(int screen_height, int hero_left,
                                  int hero_width, const ProdutoItem *product,
-                                 int focus) {
+                                 int focus, int can_manage_products) {
     static const char *actions[] = {"Venda", "Editar", "Excluir"};
     int index;
     attron(COLOR_PAIR(1) | A_BOLD);
     mvaddnstr(10, hero_left + 3, product->nome, hero_width - 6);
     mvaddnstr(12, hero_left + 3, "O que deseja fazer?", hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    for (index = 0; index < 3; index++) {
+    for (index = 0; index < (can_manage_products ? 3 : 1); index++) {
         if (focus == index) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         mvaddnstr(14 + index * 2, hero_left + 5, actions[index],
                   hero_width - 10);
@@ -173,19 +174,35 @@ static void draw_product_actions(int screen_height, int hero_left,
 
 static void draw_sale(int screen_height, int hero_left, int hero_width,
                       const ProdutoItem *product, const char *quantity,
+                      const char *crf, int pharmacist_mode, int input_focus,
                       const char *status_message, int status_is_error) {
     attron(COLOR_PAIR(1) | A_BOLD);
     mvaddnstr(10, hero_left + 3, "REGISTRAR VENDA", hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvaddnstr(12, hero_left + 3, product->nome, hero_width - 6);
     mvaddnstr(14, hero_left + 3, "Quantidade a vender:", hero_width - 6);
-    attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    if (input_focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     mvaddch(16, hero_left + 3, '[');
     mvhline(16, hero_left + 4, ' ', 14);
     mvaddch(16, hero_left + 18, ']');
     mvaddnstr(16, hero_left + 5, quantity, 12);
-    move(16, hero_left + 5 + (int)strlen(quantity));
-    attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    if (input_focus == 0) {
+        move(16, hero_left + 5 + (int)strlen(quantity));
+        attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    }
+    if (pharmacist_mode) {
+        mvaddnstr(18, hero_left + 3, "CRF (medicamento especial):",
+                  hero_width - 6);
+        if (input_focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+        mvaddch(20, hero_left + 3, '[');
+        mvhline(20, hero_left + 4, ' ', 18);
+        mvaddch(20, hero_left + 22, ']');
+        mvaddnstr(20, hero_left + 5, crf, 16);
+        if (input_focus == 1) {
+            move(20, hero_left + 5 + (int)strlen(crf));
+            attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+        }
+    }
     if (status_message[0] != '\0') {
         attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
         mvaddnstr(screen_height - 3, hero_left + 3, status_message,
@@ -194,7 +211,18 @@ static void draw_sale(int screen_height, int hero_left, int hero_width,
     }
 }
 
-static AppScreen home_screen_view(char user_id[7]) {
+static int product_is_in_user_branch(const ProdutoItem *product,
+                                     const BranchItem branches[],
+                                     int branch_count, const char *user_branch) {
+    int index;
+    for (index = 0; index < branch_count; index++) {
+        if (strcmp(branches[index].id_filial, product->filial) == 0)
+            return strcmp(branches[index].cep, user_branch) == 0;
+    }
+    return 0;
+}
+
+static AppScreen home_screen_view(char user_id[7], char *user_profile) {
     int screen_height;
     int screen_width;
     int sidebar_width;
@@ -215,6 +243,8 @@ static AppScreen home_screen_view(char user_id[7]) {
     int action_focus = 0;
     int sale_mode = 0;
     int sale_quantity_length = 0;
+    int sale_crf_length = 0;
+    int sale_input_focus = 0;
     int status_is_error = 0;
     ProdutoItem products[MAX_HOME_PRODUCTS] = {{0}};
     ProdutoItem recent_sales[MAX_HOME_PRODUCTS] = {{0}};
@@ -222,7 +252,15 @@ static AppScreen home_screen_view(char user_id[7]) {
     BranchItem branches[MAX_HOME_BRANCHES] = {{0}};
     char search_query[SEARCH_BUFFER_SIZE] = "";
     char sale_quantity[11] = "";
+    char sale_crf[16] = "";
     char status_message[96] = "";
+    ProfileInfo current_user = {0};
+    int local_stock_role = strcmp(user_profile, "farmaceutico") == 0 ||
+                           strcmp(user_profile, "atendente") == 0;
+
+    if (local_stock_role &&
+        get_profile_presentation(user_id, user_profile, &current_user) != 1)
+        return APP_SCREEN_HOME;
 
     branch_count = select_all_branches_presentation(branches,
                                                      MAX_HOME_BRANCHES);
@@ -253,18 +291,22 @@ static AppScreen home_screen_view(char user_id[7]) {
         mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
         mvhline(divider_y, hero_left, ACS_HLINE, screen_width - hero_left - 1);
 
-        draw_sidebar(screen_height, sidebar_width, focus == 5 ? -1 : focus);
+        draw_sidebar(screen_height, sidebar_width,
+                     focus == 5 ? -1 : focus, user_profile);
         draw_search_section(hero_left, hero_width, divider_y, focus,
                             editing_search, search_confirmed, search_query);
         if (sale_mode && selected_result >= 0 &&
             selected_result < visible_product_count) {
             draw_sale(screen_height, hero_left, hero_width,
                       &visible_products[selected_result], sale_quantity,
-                      status_message, status_is_error);
+                      sale_crf, strcmp(user_profile, "farmaceutico") == 0,
+                      sale_input_focus, status_message, status_is_error);
         } else if (action_menu_open && selected_result >= 0 &&
                    selected_result < visible_product_count) {
             draw_product_actions(screen_height, hero_left, hero_width,
-                                 &visible_products[selected_result], action_focus);
+                                 &visible_products[selected_result], action_focus,
+                                 strcmp(user_profile, "diretor") == 0 ||
+                                 strcmp(user_profile, "gerente") == 0);
         } else {
             draw_search_results(
                 screen_height, hero_left, hero_width, visible_products,
@@ -283,9 +325,14 @@ static AppScreen home_screen_view(char user_id[7]) {
 
         attron(A_DIM);
         if (sale_mode) {
-            mvaddnstr(screen_height - 2, 2,
-                      "Digite a quantidade | Enter: confirmar venda | Esc: voltar",
-                      screen_width - 4);
+            if (strcmp(user_profile, "farmaceutico") == 0)
+                mvaddnstr(screen_height - 2, 2,
+                          "Tab/Setas: alternar quantidade e CRF | Enter: confirmar | Esc: voltar",
+                          screen_width - 4);
+            else
+                mvaddnstr(screen_height - 2, 2,
+                          "Digite a quantidade | Enter: confirmar venda | Esc: voltar",
+                          screen_width - 4);
         } else if (action_menu_open) {
             mvaddnstr(screen_height - 2, 2,
                       "Setas: escolher acao | Enter: selecionar | Esc: voltar",
@@ -309,11 +356,26 @@ static AppScreen home_screen_view(char user_id[7]) {
                 sale_mode = 0;
                 action_menu_open = 1;
                 status_message[0] = '\0';
+            } else if (strcmp(user_profile, "farmaceutico") == 0 &&
+                       (character == '\t' || character == KEY_UP ||
+                        character == KEY_DOWN)) {
+                sale_input_focus = !sale_input_focus;
             } else if (character == KEY_BACKSPACE || character == 127 ||
                        character == 8) {
-                if (sale_quantity_length > 0)
+                if (sale_input_focus) {
+                    if (sale_crf_length > 0)
+                        sale_crf[--sale_crf_length] = '\0';
+                } else if (sale_quantity_length > 0) {
                     sale_quantity[--sale_quantity_length] = '\0';
-            } else if (character >= '0' && character <= '9' &&
+                }
+            } else if (sale_input_focus &&
+                       strcmp(user_profile, "farmaceutico") == 0 &&
+                       character >= 32 && character <= 126 &&
+                       sale_crf_length < (int)sizeof(sale_crf) - 1) {
+                sale_crf[sale_crf_length++] = (char)character;
+                sale_crf[sale_crf_length] = '\0';
+            } else if (!sale_input_focus && character >= '0' &&
+                       character <= '9' &&
                        sale_quantity_length <
                            (int)sizeof(sale_quantity) - 1) {
                 sale_quantity[sale_quantity_length++] = (char)character;
@@ -323,11 +385,18 @@ static AppScreen home_screen_view(char user_id[7]) {
                     snprintf(status_message, sizeof(status_message),
                              "Informe uma quantidade maior que zero.");
                     status_is_error = 1;
+                } else if (local_stock_role &&
+                           !product_is_in_user_branch(
+                               &visible_products[selected_result], branches,
+                               branch_count, current_user.branch)) {
+                    snprintf(status_message, sizeof(status_message),
+                             "Baixa permitida somente na sua filial.");
+                    status_is_error = 1;
                 } else if (baixa_produto_estoque_presentation(
                                visible_products[selected_result].id_produto,
                                sale_quantity,
                                visible_products[selected_result].filial,
-                               user_id) == 0) {
+                               user_id, sale_crf) == 0) {
                     int remaining =
                         atoi(visible_products[selected_result].quantidade) -
                         atoi(sale_quantity);
@@ -339,6 +408,9 @@ static AppScreen home_screen_view(char user_id[7]) {
                             user_id, recent_sales, MAX_HOME_PRODUCTS);
                     if (recent_sales_count < 0) recent_sales_count = 0;
                     sale_mode = 0;
+                    sale_crf[0] = '\0';
+                    sale_crf_length = 0;
+                    sale_input_focus = 0;
                     action_menu_open = 0;
                     focus = 6;
                     if (!search_confirmed) {
@@ -360,12 +432,17 @@ static AppScreen home_screen_view(char user_id[7]) {
                 focus = 6;
                 status_message[0] = '\0';
             } else if (character == KEY_UP || character == KEY_DOWN) {
-                action_focus = (action_focus +
-                    (character == KEY_DOWN ? 1 : 2)) % 3;
+                if (strcmp(user_profile, "diretor") == 0 ||
+                    strcmp(user_profile, "gerente") == 0)
+                    action_focus = (action_focus +
+                        (character == KEY_DOWN ? 1 : 2)) % 3;
             } else if (character == '\n' || character == KEY_ENTER) {
                 if (action_focus == 0) {
                     sale_quantity[0] = '\0';
                     sale_quantity_length = 0;
+                    sale_crf[0] = '\0';
+                    sale_crf_length = 0;
+                    sale_input_focus = 0;
                     sale_mode = 1;
                     status_message[0] = '\0';
                 } else {
@@ -428,13 +505,14 @@ static AppScreen home_screen_view(char user_id[7]) {
                     result_scroll++;
             }
         } else if (character == KEY_UP) {
-            focus = focus == 5 ? 4 : focus == 0 ? 4 : focus - 1;
+                focus = focus == 5 ? 4 : sidebar_move_focus(
+                    user_profile, focus, -1);
         } else if (character == KEY_DOWN) {
             if (focus == 5 && visible_product_count > 0) {
                 focus = 6;
                 if (selected_result < 0) selected_result = result_scroll;
             } else {
-                focus = focus == 5 ? 0 : (focus + 1) % 5;
+                focus = sidebar_move_focus(user_profile, focus, 1);
             }
         } else if (character == KEY_LEFT || character == KEY_RIGHT) {
             focus = focus == 5 || focus == 6 ? 0 : 5;
@@ -464,9 +542,11 @@ static AppScreen home_screen_view(char user_id[7]) {
                 result_scroll = 0;
                 status_message[0] = '\0';
             } else if (focus == 3) {
-                return APP_SCREEN_BRANCHES;
+                if (sidebar_item_allowed(user_profile, 3))
+                    return APP_SCREEN_BRANCHES;
             } else if (focus == 2) {
-                return APP_SCREEN_EMPLOYEES;
+                if (sidebar_item_allowed(user_profile, 2))
+                    return APP_SCREEN_EMPLOYEES;
             } else if (focus == 1) {
                 return APP_SCREEN_PRODUCTS;
             } else if (focus == 0) {
@@ -486,11 +566,13 @@ void home_screen(char user_id[7], char *user_profile) {
 
     while (current_screen != APP_SCREEN_EXIT) {
         if (current_screen == APP_SCREEN_HOME) {
-            current_screen = home_screen_view(user_id);
+            current_screen = home_screen_view(user_id, user_profile);
         } else if (current_screen == APP_SCREEN_EMPLOYEES) {
-            current_screen = (AppScreen) employee_screen(user_id, user_profile);
+            current_screen = sidebar_item_allowed(user_profile, 2) ?
+                (AppScreen) employee_screen(user_id, user_profile) : APP_SCREEN_HOME;
         } else if (current_screen == APP_SCREEN_BRANCHES) {
-            current_screen = (AppScreen) branch_screen(user_id, user_profile);
+            current_screen = sidebar_item_allowed(user_profile, 3) ?
+                (AppScreen) branch_screen(user_id, user_profile) : APP_SCREEN_HOME;
         } else if (current_screen == APP_SCREEN_PRODUCTS) {
             current_screen = (AppScreen) product_screen(user_id, user_profile);
         } else if (current_screen == APP_SCREEN_PROFILE) {

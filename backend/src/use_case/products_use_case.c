@@ -7,6 +7,7 @@
 #include "backend/src/utils/verify_user_informations.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
 #include "backend/src/infrastructure/repository/product_repository.h"
+#include "backend/src/infrastructure/repository/access_control_repository.h"
 #include "backend/src/utils/generate_id.h"
 
 #include "backend/src/use_case/products_use_case.h"
@@ -64,6 +65,11 @@ int select_products_by_filial_and_name_use_case(ProdutoItem *produtos, int max_p
 int products_use_case(char nome[], char marca[], char descricao[],
                       char preco[], char cod_barras[], char quantidade[],
                       char filial[], char id_product[7], char id_funcionario[]) {
+
+    if (!user_can_create_product_in_branch(id_funcionario, filial)) {
+        fprintf(stderr, "Erro: O usuário não pode cadastrar produtos nesta filial.\n");
+        return -1;
+    }
 
     if(verify_null_fields_products(nome, marca, descricao, preco ,cod_barras, quantidade, filial) == -1){
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
@@ -217,13 +223,19 @@ int dermocosmetico_use_case(char id_produto[], char tipo_pele[], char volume[], 
 }
 
 int baixa_produto_estoque_use_case(char id_produto[], char quantidade[],
-                                   char filial[], char id_funcionario[]) {
+                                   char filial[], char id_funcionario[],
+                                   char crf[]) {
     if (verify_null_fields_baixa(id_produto, quantidade, filial) == -1 ||
         id_funcionario[0] == '\0') {
         fprintf(stderr, "Erro: Campos nulos detectados.\n");
         return -1;
     } else if (verify_internal_code_format(filial) == 0) {
         fprintf(stderr, "Erro: Id da filial com formato incorreto");
+        return -1;
+    }
+
+    if (!user_can_sell_product(id_funcionario, id_produto, filial, crf)) {
+        fprintf(stderr, "Erro: O usuário não pode vender este produto nesta filial ou o CRF informado não autoriza a venda.\n");
         return -1;
     }
 

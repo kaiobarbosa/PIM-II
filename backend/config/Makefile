@@ -38,6 +38,7 @@ SRC = main.c \
       backend/src/domain/products_domain.c\
       backend/src/infrastructure/repository/product_repository.c\
       backend/src/infrastructure/repository/profile_repository.c\
+      backend/src/infrastructure/repository/access_control_repository.c\
       backend/src/use_case/profile_use_case.c\
       backend/src/presentation/profile_presentation.c\
       backend/src/infrastructure/repository/manager_repository.c\
