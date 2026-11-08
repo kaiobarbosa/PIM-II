@@ -603,6 +603,7 @@ int product_screen(char user_id[7], char *user_profile) {
                 if (sidebar_focus == 1) is_in_sidebar = 0;
                 if (sidebar_focus == 2) return APP_SCREEN_EMPLOYEES;
                 if (sidebar_focus == 3) return APP_SCREEN_BRANCHES;
+                if (sidebar_focus == 4) return APP_SCREEN_PROFILE;
             }
             continue;
         }
