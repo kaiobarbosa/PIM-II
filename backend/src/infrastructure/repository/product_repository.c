@@ -79,6 +79,45 @@ int get_quantidade_produto_by_id(const char *id_produto, const char *filial) {
     return quantidade;
 }
 
+int product_requires_prescription(const char *id_produto) {
+    MYSQL *conn;
+    char escaped_product_id[13];
+    char query[256];
+    MYSQL_RES *result;
+    MYSQL_ROW row;
+    int requires_prescription;
+
+    if (id_produto == NULL || strlen(id_produto) != 6) return -1;
+    conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+    mysql_real_escape_string(conn, escaped_product_id, id_produto,
+                             (unsigned long)strlen(id_produto));
+    snprintf(query, sizeof(query),
+             "SELECT EXISTS (SELECT 1 FROM produto_medicamento pm "
+             "JOIN medicamento m ON m.id_medicamento=pm.id_medicamento "
+             "WHERE pm.id_produto='%s' AND m.receita=0)",
+             escaped_product_id);
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "Erro ao consultar exigencia de receita: %s\n",
+                mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    result = mysql_store_result(conn);
+    row = result != NULL ? mysql_fetch_row(result) : NULL;
+    if (row == NULL || row[0] == NULL) {
+        if (result != NULL) mysql_free_result(result);
+        mysql_close(conn);
+        return -1;
+    }
+    requires_prescription = strcmp(row[0], "1") == 0;
+    mysql_free_result(result);
+    mysql_close(conn);
+    return requires_prescription;
+}
+
 int baixa_produto_estoque(const char *id_produto, const char *quantidade,
                           const char *filial) {
     MYSQL *conn = connect_to_database();
@@ -258,7 +297,7 @@ int create_product(const char *id, const char *nome, const char *marca, const ch
     return 0;
 }
 
-int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], bool receita, char tipagem[]){
+int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], bool requires_prescription, char tipagem[]){
 
     MYSQL *conn = connect_to_database();
     if (conn == NULL) {
@@ -267,7 +306,7 @@ int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[],
     }
 
     char query[512];
-    snprintf(query, sizeof(query), "INSERT INTO medicamento (id_medicamento, principio_ativo, forma_farmaceutica, concentracao, tarja, receita, tipagem) values ('%s', '%s', '%s', '%s', '%s', %d, '%s')", id_med, principio_ativo, forma_farmaceutica, concentracao, tarja, receita ? 1 : 0, tipagem);
+    snprintf(query, sizeof(query), "INSERT INTO medicamento (id_medicamento, principio_ativo, forma_farmaceutica, concentracao, tarja, receita, tipagem) values ('%s', '%s', '%s', '%s', '%s', %d, '%s')", id_med, principio_ativo, forma_farmaceutica, concentracao, tarja, requires_prescription ? 0 : 1, tipagem);
 
     if (mysql_query(conn, query)) {
         fprintf(stderr, "Erro ao criar medicamento: %s\n", mysql_error(conn));

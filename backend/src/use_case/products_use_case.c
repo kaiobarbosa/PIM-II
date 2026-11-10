@@ -52,6 +52,13 @@ int get_quantidade_produto_by_id_use_case(const char *id_produto, const char *fi
     return quantidade;
 }
 
+int product_requires_prescription_use_case(const char *id_produto) {
+    int result = product_requires_prescription(id_produto);
+    if (result < 0)
+        fprintf(stderr, "Erro ao consultar se o medicamento exige receita.\n");
+    return result;
+}
+
 int select_products_by_filial_and_name_use_case(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome) {
     int count = select_products_by_filial_and_name(produtos, max_produtos, filial, nome);
 
@@ -130,13 +137,13 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
         return -1;
     }
 
-    bool receita_bool;
+    bool requires_prescription;
 
-    if (strcmp(receita, "sim") == 0 || strcmp(receita, "1") == 0) {
-        receita_bool = true;
+    if (strcmp(receita, "sim") == 0 || strcmp(receita, "0") == 0) {
+        requires_prescription = true;
     } else if (strcmp(receita, "nao") == 0 ||
-               strcmp(receita, "não") == 0 || strcmp(receita, "0") == 0) {
-        receita_bool = false;
+               strcmp(receita, "não") == 0 || strcmp(receita, "1") == 0) {
+        requires_prescription = false;
     } else {
         fprintf(stderr, "Erro: Receita digitada, inválida.\n");
         return -1;
@@ -153,7 +160,8 @@ int medicamento_use_case(char id_produto[], char principio_ativo[], char forma_f
         }
     } while (id_status == 1);
 
-    if(create_med(generated_id, principio_ativo, forma_farmaceutica, concentracao, tarja, receita_bool, tipagem) == -1){
+    if(create_med(generated_id, principio_ativo, forma_farmaceutica,
+                  concentracao, tarja, requires_prescription, tipagem) == -1){
         fprintf(stderr, "Erro: Nao foi possivel criar medicamento.\n");
         return -1;
     }else if(create_prod_med(id_produto, generated_id) == -1){

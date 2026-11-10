@@ -15,6 +15,7 @@ typedef struct {
 
 int select_all_products(ProdutoItem *produtos, int max_produtos);
 int get_quantidade_produto_by_id(const char *id_produto, const char *filial);
+int product_requires_prescription(const char *id_produto);
 int baixa_produto_estoque(const char *id_produto, const char *quantidade,
                           const char *filial);
 int select_products_by_name(ProdutoItem *produtos, int max_produtos, const char *nome);
@@ -23,7 +24,7 @@ int select_products_by_filial_and_name(ProdutoItem *produtos, int max_produtos, 
 
 int create_product(const char *id, const char *nome, const char *marca, const char *descricao, const char *preco, const char *cod_barras, const char *quantidade, const char *filial);
 
-int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], bool receita, char tipagem[]);
+int create_med(char id_med[], char principio_ativo[], char forma_farmaceutica[], char concentracao[], char tarja[], bool requires_prescription, char tipagem[]);
 
 int create_prod_med (char id_prod[], char id_med[]);
 

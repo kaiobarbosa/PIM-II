@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g -I. -I/opt/homebrew/opt/mysql-client/include
-LDFLAGS = -L/opt/homebrew/opt/mysql-client/lib -lmysqlclient -lncurses
+LDFLAGS = -L/opt/homebrew/opt/mysql-client/lib -lmysqlclient -lncurses -lcurl
 TARGET = pharmaStock
 
 SRC = main.c \
@@ -38,9 +38,11 @@ SRC = main.c \
       backend/src/domain/products_domain.c\
       backend/src/infrastructure/repository/product_repository.c\
       backend/src/infrastructure/repository/profile_repository.c\
+      backend/src/infrastructure/repository/password_confirmation_repository.c\
       backend/src/infrastructure/repository/access_control_repository.c\
       backend/src/use_case/profile_use_case.c\
       backend/src/presentation/profile_presentation.c\
+      backend/src/infrastructure/external_services/bcrypt/email/email.c\
       backend/src/infrastructure/repository/manager_repository.c\
       backend/src/domain/manager_domain.c\
       backend/src/presentation/pharmacist_presentation.c\
@@ -52,9 +54,11 @@ SRC = main.c \
       backend/src/domain/attendant_domain.c\
       backend/src/infrastructure/repository/attendant_repository.c\
 
+HEADERS = $(shell find backend frontend -type f -name '*.h')
+
 all: $(TARGET)
 
-$(TARGET): $(SRC)
+$(TARGET): $(SRC) $(HEADERS) $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
 
 clean:

@@ -174,7 +174,7 @@ static void draw_product_actions(int screen_height, int hero_left,
 
 static void draw_sale(int screen_height, int hero_left, int hero_width,
                       const ProdutoItem *product, const char *quantity,
-                      const char *crf, int pharmacist_mode, int input_focus,
+                      const char *crf, int crf_required, int input_focus,
                       const char *status_message, int status_is_error) {
     attron(COLOR_PAIR(1) | A_BOLD);
     mvaddnstr(10, hero_left + 3, "REGISTRAR VENDA", hero_width - 6);
@@ -190,8 +190,8 @@ static void draw_sale(int screen_height, int hero_left, int hero_width,
         move(16, hero_left + 5 + (int)strlen(quantity));
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
-    if (pharmacist_mode) {
-        mvaddnstr(18, hero_left + 3, "CRF (medicamento especial):",
+    if (crf_required) {
+        mvaddnstr(18, hero_left + 3, "CRF do farmaceutico da filial:",
                   hero_width - 6);
         if (input_focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         mvaddch(20, hero_left + 3, '[');
@@ -245,6 +245,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
     int sale_quantity_length = 0;
     int sale_crf_length = 0;
     int sale_input_focus = 0;
+    int sale_crf_required = 0;
     int status_is_error = 0;
     ProdutoItem products[MAX_HOME_PRODUCTS] = {{0}};
     ProdutoItem recent_sales[MAX_HOME_PRODUCTS] = {{0}};
@@ -299,7 +300,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
             selected_result < visible_product_count) {
             draw_sale(screen_height, hero_left, hero_width,
                       &visible_products[selected_result], sale_quantity,
-                      sale_crf, strcmp(user_profile, "farmaceutico") == 0,
+                      sale_crf, sale_crf_required,
                       sale_input_focus, status_message, status_is_error);
         } else if (action_menu_open && selected_result >= 0 &&
                    selected_result < visible_product_count) {
@@ -325,7 +326,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
 
         attron(A_DIM);
         if (sale_mode) {
-            if (strcmp(user_profile, "farmaceutico") == 0)
+            if (sale_crf_required)
                 mvaddnstr(screen_height - 2, 2,
                           "Tab/Setas: alternar quantidade e CRF | Enter: confirmar | Esc: voltar",
                           screen_width - 4);
@@ -356,7 +357,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                 sale_mode = 0;
                 action_menu_open = 1;
                 status_message[0] = '\0';
-            } else if (strcmp(user_profile, "farmaceutico") == 0 &&
+            } else if (sale_crf_required &&
                        (character == '\t' || character == KEY_UP ||
                         character == KEY_DOWN)) {
                 sale_input_focus = !sale_input_focus;
@@ -368,8 +369,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                 } else if (sale_quantity_length > 0) {
                     sale_quantity[--sale_quantity_length] = '\0';
                 }
-            } else if (sale_input_focus &&
-                       strcmp(user_profile, "farmaceutico") == 0 &&
+            } else if (sale_input_focus && sale_crf_required &&
                        character >= 32 && character <= 126 &&
                        sale_crf_length < (int)sizeof(sale_crf) - 1) {
                 sale_crf[sale_crf_length++] = (char)character;
@@ -384,6 +384,10 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                 if (sale_quantity_length == 0 || atoi(sale_quantity) <= 0) {
                     snprintf(status_message, sizeof(status_message),
                              "Informe uma quantidade maior que zero.");
+                    status_is_error = 1;
+                } else if (sale_crf_required && sale_crf[0] == '\0') {
+                    snprintf(status_message, sizeof(status_message),
+                             "Informe o CRF de um farmaceutico da filial.");
                     status_is_error = 1;
                 } else if (local_stock_role &&
                            !product_is_in_user_branch(
@@ -410,6 +414,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                     sale_mode = 0;
                     sale_crf[0] = '\0';
                     sale_crf_length = 0;
+                    sale_crf_required = 0;
                     sale_input_focus = 0;
                     action_menu_open = 0;
                     focus = 6;
@@ -421,7 +426,9 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                              "Venda registrada. Estoque atualizado.");
                     status_is_error = 0;
                 } else {
-                    snprintf(status_message, sizeof(status_message),
+                    snprintf(status_message, sizeof(status_message), "%s",
+                             sale_crf_required ?
+                             "CRF nao pertence a filial ou estoque insuficiente." :
                              "Falha na venda. Verifique o estoque disponivel.");
                     status_is_error = 1;
                 }
@@ -443,8 +450,23 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                     sale_crf[0] = '\0';
                     sale_crf_length = 0;
                     sale_input_focus = 0;
-                    sale_mode = 1;
                     status_message[0] = '\0';
+                    if (strcmp(user_profile, "atendente") == 0) {
+                        int prescription_required =
+                            product_requires_prescription_presentation(
+                                visible_products[selected_result].id_produto);
+                        if (prescription_required < 0) {
+                            snprintf(status_message, sizeof(status_message),
+                                     "Nao foi possivel consultar a exigencia de receita.");
+                            status_is_error = 1;
+                        } else {
+                            sale_crf_required = prescription_required;
+                            sale_mode = 1;
+                        }
+                    } else {
+                        sale_crf_required = 0;
+                        sale_mode = 1;
+                    }
                 } else {
                     snprintf(status_message, sizeof(status_message),
                              "%s ainda nao esta disponivel.",
