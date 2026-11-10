@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +19,8 @@
 
 typedef enum {
     PROFILE_HISTORY,
-    PROFILE_EDIT
+    PROFILE_EDIT,
+    PROFILE_CONFIRMATION
 } ProfileScreenMode;
 
 typedef enum {
@@ -223,6 +225,52 @@ static void draw_profile_edit(int screen_height, int hero_left, int hero_width,
     }
 }
 
+static void draw_profile_confirmation(int screen_height, int hero_left,
+                                      int hero_width,
+                                      const char verification_code[],
+                                      int focus, int editing,
+                                      const char *status,
+                                      int status_is_error) {
+    int field_x = hero_left + 23;
+    int field_width = hero_width - 28;
+    int button_y = screen_height - 5;
+
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvaddnstr(2, hero_left + 3, "CONFIRMAR ALTERACAO DE SENHA",
+              hero_width - 6);
+    attroff(COLOR_PAIR(1) | A_BOLD);
+
+    mvaddnstr(5, hero_left + 3,
+              "Enviamos um codigo de 6 caracteres para o e-mail cadastrado.",
+              hero_width - 6);
+    mvaddnstr(7, hero_left + 3, "Codigo", 19);
+    if (focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    mvaddch(7, field_x, '[');
+    mvhline(7, field_x + 1, ' ', field_width - 2);
+    mvaddch(7, field_x + field_width - 1, ']');
+    mvaddnstr(7, field_x + 2, verification_code, field_width - 4);
+    if (focus == 0 && editing) {
+        int cursor_x = field_x + 2 + (int)strlen(verification_code);
+        if (cursor_x > field_x + field_width - 2)
+            cursor_x = field_x + field_width - 2;
+        move(7, cursor_x);
+    }
+    if (focus == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+
+    if (focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    mvaddnstr(button_y, hero_left + 4, "[ VOLTAR ]", 12);
+    if (focus == 1) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    if (focus == 2) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    mvaddnstr(button_y, hero_left + 23, "[ CONFIRMAR ]", 16);
+    if (focus == 2) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+
+    if (status[0] != '\0') {
+        attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+        mvaddnstr(screen_height - 3, hero_left + 3, status, hero_width - 6);
+        attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
+    }
+}
+
 int profile_screen(char user_id[7], char *user_profile) {
     ProfileInfo profile = {0};
     ProfileInfo edit_info = {0};
@@ -249,6 +297,7 @@ int profile_screen(char user_id[7], char *user_profile) {
     int character;
     char new_password[128] = "";
     char confirm_password[128] = "";
+    char verification_code[7] = "";
     char status_message[120] = "";
 
     if (get_profile_presentation(user_id, user_profile, &profile) != 1) {
@@ -281,7 +330,7 @@ int profile_screen(char user_id[7], char *user_profile) {
                              profile.internal_code, profile.crf, profile.branch,
                              profile.email, password_info_visible,
                              is_in_sidebar ? sidebar_focus : -1,
-                             mode == PROFILE_EDIT);
+                             mode != PROFILE_HISTORY);
 
         if (mode == PROFILE_HISTORY) {
             draw_profile_history(screen_height, hero_left, hero_width, sales,
@@ -293,15 +342,27 @@ int profile_screen(char user_id[7], char *user_profile) {
                           hero_width - 6);
                 attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
             }
-        } else {
+        } else if (mode == PROFILE_EDIT) {
             draw_profile_edit(screen_height, hero_left, hero_width, &edit_info,
                               fields, field_count, focus, editing, new_password,
                               confirm_password, password_visible, status_message,
                               status_is_error);
+        } else {
+            draw_profile_confirmation(screen_height, hero_left, hero_width,
+                                      verification_code, focus, editing,
+                                      status_message, status_is_error);
         }
 
         attron(A_DIM);
-        if (mode == PROFILE_EDIT && editing) {
+        if (mode == PROFILE_CONFIRMATION && editing) {
+            mvaddnstr(screen_height - 2, 2,
+                      "Digite o codigo | Enter: concluir campo | Esc: voltar",
+                      screen_width - 4);
+        } else if (mode == PROFILE_CONFIRMATION) {
+            mvaddnstr(screen_height - 2, 2,
+                      "Setas: navegar | Enter: editar/selecionar | Esc: voltar",
+                      screen_width - 4);
+        } else if (mode == PROFILE_EDIT && editing) {
             mvaddnstr(screen_height - 2, 2,
                       "Digite o campo | Enter: concluir campo | Esc: parar",
                       screen_width - 4);
@@ -349,7 +410,70 @@ int profile_screen(char user_id[7], char *user_profile) {
             continue;
         }
 
-        if (mode == PROFILE_EDIT) {
+        if (mode == PROFILE_CONFIRMATION) {
+            if (editing) {
+                size_t length = strlen(verification_code);
+                if (character == '\n' || character == KEY_ENTER ||
+                    character == 27) {
+                    editing = 0;
+                } else if ((character == KEY_BACKSPACE || character == 127 ||
+                            character == 8) && length > 0) {
+                    verification_code[length - 1] = '\0';
+                } else if (length < 6 && character >= 32 && character <= 126 &&
+                           isalnum((unsigned char)character)) {
+                    verification_code[length] =
+                        (char)toupper((unsigned char)character);
+                    verification_code[length + 1] = '\0';
+                }
+            } else if (character == 27) {
+                mode = PROFILE_EDIT;
+                verification_code[0] = '\0';
+                status_message[0] = '\0';
+            } else if (character == KEY_UP || character == KEY_DOWN) {
+                focus = (focus + (character == KEY_DOWN ? 1 : 2)) % 3;
+            } else if ((character == '\n' || character == KEY_ENTER) &&
+                       focus == 0) {
+                editing = 1;
+            } else if ((character == '\n' || character == KEY_ENTER) &&
+                       focus == 1) {
+                mode = PROFILE_EDIT;
+                verification_code[0] = '\0';
+                status_message[0] = '\0';
+            } else if ((character == '\n' || character == KEY_ENTER) &&
+                       focus == 2) {
+                int confirmation_result =
+                    confirm_profile_password_change_presentation(
+                        &edit_info, profile.email, verification_code,
+                        new_password);
+                if (confirmation_result == 0) {
+                    profile = edit_info;
+                    get_profile_presentation(user_id, user_profile, &profile);
+                    sales_count = select_produtos_vendidos_by_user_id_presentation(
+                        user_id, sales, MAX_PROFILE_SALES);
+                    if (sales_count < 0) sales_count = 0;
+                    history_scroll = 0;
+                    new_password[0] = '\0';
+                    confirm_password[0] = '\0';
+                    verification_code[0] = '\0';
+                    mode = PROFILE_HISTORY;
+                    snprintf(status_message, sizeof(status_message),
+                             "Perfil atualizado com sucesso.");
+                    status_is_error = 0;
+                } else if (confirmation_result == -2) {
+                    mode = PROFILE_EDIT;
+                    verification_code[0] = '\0';
+                    snprintf(status_message, sizeof(status_message),
+                             "Falha ao salvar. Revise os dados e confirme novamente.");
+                    status_is_error = 1;
+                } else {
+                    verification_code[0] = '\0';
+                    focus = 0;
+                    snprintf(status_message, sizeof(status_message),
+                             "Codigo invalido ou expirado. Tente novamente.");
+                    status_is_error = 1;
+                }
+            }
+        } else if (mode == PROFILE_EDIT) {
             if (editing) {
                 size_t capacity;
                 char *value = field_value(&edit_info, fields[focus],
@@ -396,8 +520,23 @@ int profile_screen(char user_id[7], char *user_profile) {
                     snprintf(status_message, sizeof(status_message),
                              "As senhas precisam coincidir. Preencha novamente.");
                     status_is_error = 1;
+                } else if (new_password[0] != '\0') {
+                    if (request_profile_password_change_code_presentation(
+                            &edit_info, profile.email) == 0) {
+                        verification_code[0] = '\0';
+                        focus = 0;
+                        editing = 0;
+                        mode = PROFILE_CONFIRMATION;
+                        snprintf(status_message, sizeof(status_message),
+                                 "Codigo enviado para o e-mail cadastrado.");
+                        status_is_error = 0;
+                    } else {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Nao foi possivel enviar. Verifique os campos e a configuracao SMTP.");
+                        status_is_error = 1;
+                    }
                 } else if (update_profile_presentation(
-                               &edit_info, new_password) == 0) {
+                               &edit_info, "") == 0) {
                     profile = edit_info;
                     get_profile_presentation(user_id, user_profile, &profile);
                     sales_count = select_produtos_vendidos_by_user_id_presentation(

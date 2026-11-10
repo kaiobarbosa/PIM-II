@@ -31,6 +31,13 @@ int product_dermo(char nome[], char marca[], char descricao[], char preco[],
 int baixa_produto_estoque_presentation(char id_produto[], char quantidade[],
                                        char filial[], char id_funcionario[],
                                        char crf[]);
+int product_requires_prescription_presentation(const char *id_produto);
+int get_product_details_presentation(const char *id_produto,
+                                    ProductDetails *details);
+int update_product_presentation(const ProductDetails *details,
+                               const char *id_funcionario);
+int delete_product_presentation(const char *id_produto,
+                                const char *id_funcionario);
 
 int select_produtos_vendidos_by_user_id_presentation(const char *id_user, ProdutoItem *produtos, int max_produtos);
 

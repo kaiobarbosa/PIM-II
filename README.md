@@ -40,10 +40,10 @@ As funcionalidades acima representam o escopo planejado; sua disponibilidade dep
 
 | Perfil | Responsabilidade e permissões principais |
 | --- | --- |
-| **Diretor** | Administra a rede: cria filiais, gerencia usuários de qualquer unidade, acessa todo o estoque e consulta os logs da aplicação. |
-| **Gerente** | Administra uma filial: gerencia seus produtos e estoque, consulta o estoque das demais unidades e cria contas locais de farmacêuticos e atendentes. |
-| **Farmacêutico** | Consulta os produtos, acessa o estoque local, registra baixas autorizadas e libera medicamentos que exigem sua responsabilidade profissional, mediante CRF. |
-| **Atendente** | Consulta os produtos da rede e registra a saída de medicamentos comuns da própria filial. Operações de maior severidade dependem de autorização do farmacêutico. |
+| **Diretor** | Administra a rede: cria filiais, gerencia usuários de qualquer unidade, acessa todo o estoque e consulta os logs da aplicação. Pode liberar medicamentos com ou sem receita. |
+| **Gerente** | Administra uma filial: gerencia seus produtos e estoque, consulta o estoque das demais unidades e cria contas locais de farmacêuticos e atendentes. Pode liberar medicamentos com ou sem receita. |
+| **Farmacêutico** | Consulta produtos e estoque da própria filial e pode liberar medicamentos que exigem receita; o CRF da conta deve estar cadastrado. |
+| **Atendente** | Consulta produtos e registra saídas na própria filial. Para medicamento com receita, informa o CRF de um farmacêutico cadastrado na mesma filial. |
 
 ## Classificação de produtos
 
@@ -141,6 +141,7 @@ Cadastro de funcionários:
 - mensagens de erro e repetição do formulário quando o cadastro falha;
 - encerramento correto da conexão MySQL e da sessão `ncurses`;
 - login dos quatro perfis, validação de senha bcrypt e identificação do usuário autenticado;
+- alteração de senha no perfil com código de confirmação enviado por SMTP;
 - geração de IDs sem colisão com IDs já existentes nas tabelas de usuários;
 - cadastro de gerentes, farmacêuticos e atendentes por diretor ou gerente;
 - associação dos funcionários à filial e ao supervisor responsável;
@@ -207,7 +208,7 @@ Neste projeto, o Makefile centraliza:
 - o compilador utilizado (`gcc`);
 - as opções de aviso e depuração (`-Wall`, `-Wextra` e `-g`);
 - o caminho dos headers do MySQL (`-I...`);
-- o caminho e as bibliotecas necessárias na etapa de linkedição (`-L...`, `-lmysqlclient` e `-lncurses`);
+- o caminho e as bibliotecas necessárias na etapa de linkedição (`-L...`, `-lmysqlclient`, `-lncurses` e `-lcurl`);
 - o nome do executável (`pharmaStock`);
 - a lista de arquivos `.c` que formam o programa;
 - a remoção do executável gerado.
@@ -270,10 +271,10 @@ gcc -Wall -Wextra -g \
   backend/src/domain/validation/password_crypt.c \
   -o pharmaStock \
   -L/opt/homebrew/opt/mysql-client/lib \
-  -lmysqlclient -lncurses
+  -lmysqlclient -lncurses -lcurl
 ```
 
-O `-I` informa onde encontrar headers, como `mysql/mysql.h`. O `-L` informa onde encontrar as bibliotecas compiladas. Já `-lmysqlclient` e `-lncurses` vinculam, respectivamente, o cliente MySQL e a biblioteca de terminal utilizada pelo programa.
+O `-I` informa onde encontrar headers, como `mysql/mysql.h`. O `-L` informa onde encontrar as bibliotecas compiladas. Já `-lmysqlclient`, `-lncurses` e `-lcurl` vinculam o cliente MySQL, a biblioteca de terminal e o cliente HTTP/SMTP usados pelo programa.
 
 ## Regra para adicionar arquivos `.c`
 
@@ -305,9 +306,13 @@ O banco utilizado é o MySQL, com o nome `pharma_database`. O script [`database/
 
 O cadastro do diretor utiliza a tabela `diretor`, que possui os campos `id_diretor`, `nome_diretor`, `sobrenome_diretor`, `codigo_interno`, `email_diretor` e `senha_diretor`. O ID é gerado pela aplicação, o e-mail é único e a senha armazenada é o hash bcrypt, não o texto original.
 
+No campo `medicamento.receita`, `0` significa que o medicamento exige receita e `1` que não exige. Medicamentos cadastrados pela versão anterior podem ter esse valor invertido pelo formulário antigo; revise esses registros existentes antes de usar a nova autorização de vendas.
+
 Antes de executar o script, é necessário ter um servidor MySQL disponível e selecionar o banco correto. O esquema ainda está em desenvolvimento e pode exigir atualização ao longo da implementação.
 
 As credenciais são carregadas de um arquivo `.env` pelo módulo `backend/config/env_parser.c`. Configure o arquivo localmente antes de executar a aplicação e não publique seus valores. Os nomes das variáveis esperadas devem ser conferidos em `backend/config/database_connector.c`.
+
+Para enviar os códigos de confirmação da alteração de senha, configure também `SMTP_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD` e `SMTP_FROM` no `.env`. Use o endereço do servidor SMTP com STARTTLS (por exemplo, `smtp://smtp.example.com:587`) ou TLS implícito (`smtps://smtp.example.com:465`), e informe em `SMTP_FROM` o endereço de remetente autorizado pelo provedor. Se o servidor usar uma autoridade certificadora privada, `SMTP_CA_BUNDLE` pode apontar para o arquivo PEM dessa CA. A tabela `recuperacao_senha` é criada por `database/tables.sql`; os códigos expiram após 10 minutos e são descartados após o uso.
 
 ## Modelo de dados e regras de negócio
 

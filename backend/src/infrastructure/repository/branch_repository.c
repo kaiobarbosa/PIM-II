@@ -48,7 +48,10 @@ int select_all_branches(BranchItem *branches, int max_branches) {
     MYSQL *conn = connect_to_database();
     if (conn == NULL) return -1;
 
-    const char *query = "SELECT f.id_filial, e.cep, e.cidade, e.estado FROM filial f INNER JOIN endereco e ON f.id_endereco = e.id_endereco";
+    const char *query =
+        "SELECT f.id_filial, e.cep, e.logradouro, e.numero, "
+        "COALESCE(e.complemento,''), e.bairro, e.cidade, e.estado "
+        "FROM filial f INNER JOIN endereco e ON f.id_endereco=e.id_endereco";
     
     if (mysql_query(conn, query)) {
         fprintf(stderr, "Erro ao buscar filiais: %s\n", mysql_error(conn));
@@ -66,10 +69,25 @@ int select_all_branches(BranchItem *branches, int max_branches) {
     int count = 0;
 
     while ((row = mysql_fetch_row(result)) && count < max_branches) {
-        if (row[0] != NULL) strcpy(branches[count].id_filial, row[0]);
-        if (row[1] != NULL) strcpy(branches[count].cep, row[1]);
-        if (row[2] != NULL) strcpy(branches[count].cidade, row[2]);
-        if (row[3] != NULL) strcpy(branches[count].estado, row[3]);
+        snprintf(branches[count].id_filial,
+                 sizeof(branches[count].id_filial), "%s",
+                 row[0] != NULL ? row[0] : "");
+        snprintf(branches[count].cep, sizeof(branches[count].cep), "%s",
+                 row[1] != NULL ? row[1] : "");
+        snprintf(branches[count].logradouro,
+                 sizeof(branches[count].logradouro), "%s",
+                 row[2] != NULL ? row[2] : "");
+        snprintf(branches[count].numero, sizeof(branches[count].numero), "%s",
+                 row[3] != NULL ? row[3] : "");
+        snprintf(branches[count].complemento,
+                 sizeof(branches[count].complemento), "%s",
+                 row[4] != NULL ? row[4] : "");
+        snprintf(branches[count].bairro, sizeof(branches[count].bairro), "%s",
+                 row[5] != NULL ? row[5] : "");
+        snprintf(branches[count].cidade, sizeof(branches[count].cidade), "%s",
+                 row[6] != NULL ? row[6] : "");
+        snprintf(branches[count].estado, sizeof(branches[count].estado), "%s",
+                 row[7] != NULL ? row[7] : "");
         count++;
     }
 

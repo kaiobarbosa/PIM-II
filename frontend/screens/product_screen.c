@@ -16,13 +16,13 @@
 #define MAX_PRODUCT_FIELDS 23
 #define PRODUCTS_PER_PAGE 6
 
-typedef enum {
-    PRODUCT_GENERAL,
-    PRODUCT_DERMOCOSMETIC,
-    PRODUCT_MEDICINE,
-    PRODUCT_EQUIPMENT,
-    PRODUCT_TYPE_COUNT
-} ProductType;
+typedef ProductKind ProductType;
+
+#define PRODUCT_GENERAL PRODUCT_KIND_GENERAL
+#define PRODUCT_DERMOCOSMETIC PRODUCT_KIND_DERMOCOSMETIC
+#define PRODUCT_MEDICINE PRODUCT_KIND_MEDICINE
+#define PRODUCT_EQUIPMENT PRODUCT_KIND_EQUIPMENT
+#define PRODUCT_TYPE_COUNT 4
 
 typedef enum {
     FIELD_TYPE,
@@ -55,12 +55,15 @@ typedef enum {
     SCREEN_REGISTER,
     SCREEN_STOCK,
     SCREEN_ACTIONS,
-    SCREEN_SALE
+    SCREEN_SALE,
+    SCREEN_EDIT,
+    SCREEN_BRANCH_INFO,
+    SCREEN_DELETE_CONFIRM
 } ProductScreenMode;
 
 typedef struct {
     char id[7];
-    char values[MAX_PRODUCT_FIELDS][128];
+    char values[MAX_PRODUCT_FIELDS][256];
     ProductType type;
     char type_name[32];
     int branch_index;
@@ -73,7 +76,7 @@ static const char *product_type_names[PRODUCT_TYPE_COUNT] = {
 static const char *field_labels[MAX_PRODUCT_FIELDS] = {
     "Tipo", "Nome", "Marca", "Descricao", "Preco", "Codigo barras",
     "Quantidade", "Filial", "Principio ativo", "Forma farmaceutica",
-    "Concentracao", "Tarja", "Receita", "Tipagem", "Tipo de pele",
+    "Concentracao", "Tarja", "Precisa receita", "Tipagem", "Tipo de pele",
     "Volume", "Fator protecao", "Indicacao", "ID produto", "Modelo",
     "Fabricante", "Especificacoes", "Garantia"
 };
@@ -234,7 +237,7 @@ static void draw_menu(int screen_height, int hero_left, int hero_width,
 static void draw_register(int screen_height, int hero_left, int hero_width,
                           int divider_y, const Product *product,
                           const ProductField fields[], int field_count,
-                          int focus, int editing,
+                          int focus, int editing, int editing_existing,
                           const BranchItem branches[], int branch_count,
                           const char *status_message, int status_is_error) {
     int index;
@@ -242,7 +245,9 @@ static void draw_register(int screen_height, int hero_left, int hero_width,
     int button_y = screen_height - 4;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, hero_left + 3, "CADASTRAR PRODUTO", hero_width - 6);
+    mvaddnstr(2, hero_left + 3,
+              editing_existing ? "EDITAR PRODUTO" : "CADASTRAR PRODUTO",
+              hero_width - 6);
     mvaddnstr(divider_y + 1, hero_left + 3,
               product->type == PRODUCT_GENERAL ? "DADOS ADICIONAIS" :
               "DADOS ESPECIFICOS", hero_width - 6);
@@ -261,7 +266,8 @@ static void draw_register(int screen_height, int hero_left, int hero_width,
     mvaddnstr(button_y, hero_left + 4, "[ CANCELAR ]", 14);
     if (focus == field_count) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     if (focus == field_count + 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(button_y, hero_left + 23, "[ CADASTRAR ]", 16);
+    mvaddnstr(button_y, hero_left + 23,
+              editing_existing ? "[ SALVAR ]" : "[ CADASTRAR ]", 16);
     if (focus == field_count + 1) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
 
     if (status_message[0] != '\0') {
@@ -370,27 +376,87 @@ static void draw_stock(int screen_height, int hero_left, int hero_width,
     }
 }
 
+static int get_product_action_count(int can_manage_product) {
+    return can_manage_product ? 4 : 2;
+}
+
+static int get_product_action_value(int visible_index,
+                                    int can_manage_product) {
+    if (can_manage_product) return visible_index;
+    return visible_index == 0 ? 0 : 3;
+}
+
 static void draw_product_actions(int hero_left, int hero_width,
                                  const Product *product, int focus,
-                                 int can_manage_products) {
-    static const char *actions[] = {"Venda", "Editar", "Excluir"};
+                                 int can_manage_product) {
+    static const char *actions[] = {
+        "Venda", "Editar", "Excluir", "Ver endereco da filial"
+    };
     int index;
 
     attron(COLOR_PAIR(1) | A_BOLD);
     mvaddnstr(3, hero_left + 3, product->values[FIELD_NAME], hero_width - 6);
     mvaddnstr(5, hero_left + 3, "O que deseja fazer?", hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    for (index = 0; index < (can_manage_products ? 3 : 1); index++) {
+    for (index = 0; index < get_product_action_count(can_manage_product);
+         index++) {
+        int action = get_product_action_value(index, can_manage_product);
         if (focus == index) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-        mvaddnstr(7 + index * 2, hero_left + 5, actions[index],
+        mvaddnstr(7 + index * 2, hero_left + 5, actions[action],
                   hero_width - 10);
         if (focus == index) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
 }
 
+static void draw_branch_info(int hero_left, int hero_width,
+                             const Product *product,
+                             const BranchItem *branch) {
+    char line[512];
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvaddnstr(3, hero_left + 3, "ENDERECO DA FILIAL", hero_width - 6);
+    attroff(COLOR_PAIR(1) | A_BOLD);
+    snprintf(line, sizeof(line), "Produto: %s", product->values[FIELD_NAME]);
+    mvaddnstr(6, hero_left + 3, line, hero_width - 6);
+    snprintf(line, sizeof(line), "CEP: %s", branch->cep);
+    mvaddnstr(8, hero_left + 3, line, hero_width - 6);
+    snprintf(line, sizeof(line), "Logradouro: %s", branch->logradouro);
+    mvaddnstr(10, hero_left + 3, line, hero_width - 6);
+    snprintf(line, sizeof(line), "Numero: %s", branch->numero);
+    mvaddnstr(11, hero_left + 3, line, hero_width - 6);
+    snprintf(line, sizeof(line), "Complemento: %s",
+             branch->complemento[0] != '\0' ? branch->complemento : "-");
+    mvaddnstr(12, hero_left + 3, line, hero_width - 6);
+    snprintf(line, sizeof(line), "Bairro: %s", branch->bairro);
+    mvaddnstr(13, hero_left + 3, line, hero_width - 6);
+    snprintf(line, sizeof(line), "Cidade/Estado: %s/%s",
+             branch->cidade, branch->estado);
+    mvaddnstr(14, hero_left + 3, line, hero_width - 6);
+    attron(A_DIM);
+    mvaddnstr(20, hero_left + 3, "Enter/Esc: voltar as opcoes do produto",
+              hero_width - 6);
+    attroff(A_DIM);
+}
+
+static void draw_delete_confirmation(int hero_left, int hero_width,
+                                     const Product *product, int focus) {
+    attron(COLOR_PAIR(3) | A_BOLD);
+    mvaddnstr(4, hero_left + 3, "EXCLUIR PRODUTO", hero_width - 6);
+    attroff(COLOR_PAIR(3) | A_BOLD);
+    mvaddnstr(7, hero_left + 3, product->values[FIELD_NAME], hero_width - 6);
+    mvaddnstr(9, hero_left + 3,
+              "A exclusao remove o produto e seus dados especificos.",
+              hero_width - 6);
+    if (focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    mvaddnstr(13, hero_left + 4, "[ CANCELAR ]", 14);
+    if (focus == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
+    if (focus == 1) attron(COLOR_PAIR(3) | A_BOLD | A_REVERSE);
+    mvaddnstr(13, hero_left + 24, "[ EXCLUIR ]", 13);
+    if (focus == 1) attroff(COLOR_PAIR(3) | A_BOLD | A_REVERSE);
+}
+
 static void draw_sale(int screen_height, int hero_left, int hero_width,
                       const Product *product, const char *quantity,
-                      const char *crf, int pharmacist_mode, int input_focus,
+                      const char *crf, int crf_required, int input_focus,
                       const char *status_message, int status_is_error) {
     attron(COLOR_PAIR(1) | A_BOLD);
     mvaddnstr(3, hero_left + 3, "REGISTRAR VENDA", hero_width - 6);
@@ -406,8 +472,8 @@ static void draw_sale(int screen_height, int hero_left, int hero_width,
         move(9, hero_left + 5 + (int)strlen(quantity));
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
-    if (pharmacist_mode) {
-        mvaddnstr(11, hero_left + 3, "CRF (medicamento especial):",
+    if (crf_required) {
+        mvaddnstr(11, hero_left + 3, "CRF do farmaceutico da filial:",
                   hero_width - 6);
         if (input_focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         mvaddch(13, hero_left + 3, '[');
@@ -478,6 +544,141 @@ static void map_product_items(Product products[], const ProdutoItem items[],
     }
 }
 
+static void map_product_details(Product *product,
+                               const ProductDetails *details,
+                               const BranchItem branches[], int branch_count) {
+    int branch_index;
+    clear_product(product);
+    snprintf(product->id, sizeof(product->id), "%s", details->id_produto);
+    set_product_type(product, details->kind);
+    snprintf(product->values[FIELD_NAME], sizeof(product->values[FIELD_NAME]),
+             "%s", details->nome);
+    snprintf(product->values[FIELD_BRAND], sizeof(product->values[FIELD_BRAND]),
+             "%s", details->marca);
+    snprintf(product->values[FIELD_DESCRIPTION],
+             sizeof(product->values[FIELD_DESCRIPTION]), "%s",
+             details->descricao);
+    snprintf(product->values[FIELD_PRICE], sizeof(product->values[FIELD_PRICE]),
+             "%s", details->preco);
+    snprintf(product->values[FIELD_BARCODE],
+             sizeof(product->values[FIELD_BARCODE]), "%s",
+             details->codigo_de_barras);
+    snprintf(product->values[FIELD_QUANTITY],
+             sizeof(product->values[FIELD_QUANTITY]), "%s",
+             details->quantidade);
+    snprintf(product->values[FIELD_ACTIVE_INGREDIENT],
+             sizeof(product->values[FIELD_ACTIVE_INGREDIENT]), "%s",
+             details->principio_ativo);
+    snprintf(product->values[FIELD_PHARMACEUTICAL_FORM],
+             sizeof(product->values[FIELD_PHARMACEUTICAL_FORM]), "%s",
+             details->forma_farmaceutica);
+    snprintf(product->values[FIELD_CONCENTRATION],
+             sizeof(product->values[FIELD_CONCENTRATION]), "%s",
+             details->concentracao);
+    snprintf(product->values[FIELD_STRIPE], sizeof(product->values[FIELD_STRIPE]),
+             "%s", details->tarja);
+    snprintf(product->values[FIELD_PRESCRIPTION],
+             sizeof(product->values[FIELD_PRESCRIPTION]), "%s",
+             details->receita);
+    snprintf(product->values[FIELD_CLASSIFICATION],
+             sizeof(product->values[FIELD_CLASSIFICATION]), "%s",
+             details->tipagem);
+    snprintf(product->values[FIELD_SKIN_TYPE],
+             sizeof(product->values[FIELD_SKIN_TYPE]), "%s",
+             details->tipo_pele);
+    snprintf(product->values[FIELD_VOLUME], sizeof(product->values[FIELD_VOLUME]),
+             "%s", details->volume);
+    snprintf(product->values[FIELD_SUN_PROTECTION],
+             sizeof(product->values[FIELD_SUN_PROTECTION]), "%s",
+             details->fator_protecao);
+    snprintf(product->values[FIELD_INDICATION],
+             sizeof(product->values[FIELD_INDICATION]), "%s",
+             details->indicacao);
+    snprintf(product->values[FIELD_MODEL], sizeof(product->values[FIELD_MODEL]),
+             "%s", details->modelo);
+    snprintf(product->values[FIELD_MANUFACTURER],
+             sizeof(product->values[FIELD_MANUFACTURER]), "%s",
+             details->fabricante);
+    snprintf(product->values[FIELD_SPECIFICATIONS],
+             sizeof(product->values[FIELD_SPECIFICATIONS]), "%s",
+             details->especificacoes);
+    snprintf(product->values[FIELD_WARRANTY],
+             sizeof(product->values[FIELD_WARRANTY]), "%s",
+             details->garantia);
+    for (branch_index = 0; branch_index < branch_count; branch_index++) {
+        if (strcmp(details->id_filial, branches[branch_index].id_filial) == 0) {
+            product->branch_index = branch_index;
+            snprintf(product->values[FIELD_BRANCH],
+                     sizeof(product->values[FIELD_BRANCH]), "%s",
+                     branches[branch_index].cep);
+            break;
+        }
+    }
+}
+
+static void fill_product_details(const Product *product,
+                                 const BranchItem branches[],
+                                 ProductDetails *details) {
+    memset(details, 0, sizeof(*details));
+    snprintf(details->id_produto, sizeof(details->id_produto), "%s",
+             product->id);
+    details->kind = product->type;
+    snprintf(details->nome, sizeof(details->nome), "%s",
+             product->values[FIELD_NAME]);
+    snprintf(details->marca, sizeof(details->marca), "%s",
+             product->values[FIELD_BRAND]);
+    snprintf(details->descricao, sizeof(details->descricao), "%s",
+             product->values[FIELD_DESCRIPTION]);
+    snprintf(details->preco, sizeof(details->preco), "%s",
+             product->values[FIELD_PRICE]);
+    snprintf(details->codigo_de_barras, sizeof(details->codigo_de_barras), "%s",
+             product->values[FIELD_BARCODE]);
+    snprintf(details->quantidade, sizeof(details->quantidade), "%s",
+             product->values[FIELD_QUANTITY]);
+    if (product->branch_index >= 0) {
+        snprintf(details->id_filial, sizeof(details->id_filial), "%s",
+                 branches[product->branch_index].id_filial);
+    }
+    snprintf(details->principio_ativo, sizeof(details->principio_ativo), "%s",
+             product->values[FIELD_ACTIVE_INGREDIENT]);
+    snprintf(details->forma_farmaceutica,
+             sizeof(details->forma_farmaceutica), "%s",
+             product->values[FIELD_PHARMACEUTICAL_FORM]);
+    snprintf(details->concentracao, sizeof(details->concentracao), "%s",
+             product->values[FIELD_CONCENTRATION]);
+    snprintf(details->tarja, sizeof(details->tarja), "%s",
+             product->values[FIELD_STRIPE]);
+    snprintf(details->receita, sizeof(details->receita), "%s",
+             product->values[FIELD_PRESCRIPTION]);
+    snprintf(details->tipagem, sizeof(details->tipagem), "%s",
+             product->values[FIELD_CLASSIFICATION]);
+    snprintf(details->tipo_pele, sizeof(details->tipo_pele), "%s",
+             product->values[FIELD_SKIN_TYPE]);
+    snprintf(details->volume, sizeof(details->volume), "%s",
+             product->values[FIELD_VOLUME]);
+    snprintf(details->fator_protecao, sizeof(details->fator_protecao), "%s",
+             product->values[FIELD_SUN_PROTECTION]);
+    snprintf(details->indicacao, sizeof(details->indicacao), "%s",
+             product->values[FIELD_INDICATION]);
+    snprintf(details->modelo, sizeof(details->modelo), "%s",
+             product->values[FIELD_MODEL]);
+    snprintf(details->fabricante, sizeof(details->fabricante), "%s",
+             product->values[FIELD_MANUFACTURER]);
+    snprintf(details->especificacoes, sizeof(details->especificacoes), "%s",
+             product->values[FIELD_SPECIFICATIONS]);
+    snprintf(details->garantia, sizeof(details->garantia), "%s",
+             product->values[FIELD_WARRANTY]);
+}
+
+static int find_product_by_id(const Product products[], int product_count,
+                              const char *product_id) {
+    int index;
+    for (index = 0; index < product_count; index++) {
+        if (strcmp(products[index].id, product_id) == 0) return index;
+    }
+    return -1;
+}
+
 static int refresh_product_list(Product products[], ProdutoItem product_items[],
                                 const BranchItem branches[], int branch_count) {
     int product_count = select_all_products_presentation(product_items,
@@ -529,6 +730,7 @@ int product_screen(char user_id[7], char *user_profile) {
     int form_field_count = 0;
     int form_focus = 0;
     int form_editing = 0;
+    int form_is_edit = 0;
     char status_message[96] = "";
     int status_is_error = 0;
     char stock_search[128] = "";
@@ -541,18 +743,19 @@ int product_screen(char user_id[7], char *user_profile) {
     int products_scroll = 0;
     int selected_product = -1;
     int action_focus = 0;
+    int delete_focus = 0;
     char sale_quantity[11] = "";
     int sale_quantity_length = 0;
     char sale_crf[16] = "";
     int sale_crf_length = 0;
     int sale_input_focus = 0;
-    int pharmacist_mode = user_profile != NULL &&
-                          strcmp(user_profile, "farmaceutico") == 0;
+    int sale_crf_required = 0;
     int can_manage_products = user_profile != NULL &&
         (strcmp(user_profile, "diretor") == 0 ||
          strcmp(user_profile, "gerente") == 0);
     int local_stock_role = user_profile != NULL &&
-        (strcmp(user_profile, "farmaceutico") == 0 ||
+        (strcmp(user_profile, "gerente") == 0 ||
+         strcmp(user_profile, "farmaceutico") == 0 ||
          strcmp(user_profile, "atendente") == 0);
     int manager_branch_index = -1;
     ProfileInfo current_user = {0};
@@ -594,6 +797,10 @@ int product_screen(char user_id[7], char *user_profile) {
                                                applied_search,
                                                applied_branch_filter,
                                                result_indexes);
+        int selected_can_manage = strcmp(user_profile, "diretor") == 0 ||
+            (strcmp(user_profile, "gerente") == 0 &&
+             selected_product >= 0 && selected_product < product_count &&
+             products[selected_product].branch_index == manager_branch_index);
         erase();
         box(stdscr, 0, 0);
         mvvline(1, sidebar_width, ACS_VLINE, screen_height - 2);
@@ -609,21 +816,37 @@ int product_screen(char user_id[7], char *user_profile) {
                           hero_width - 6);
                 attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
             }
-        } else if (mode == SCREEN_REGISTER) {
+        } else if (mode == SCREEN_REGISTER || mode == SCREEN_EDIT) {
             draw_register(screen_height, hero_left, hero_width, divider_y,
                           &form_product, form_fields, form_field_count,
-                          form_focus, form_editing, branches, branch_count,
-                          status_message, status_is_error);
+                          form_focus, form_editing, form_is_edit, branches,
+                          branch_count, status_message, status_is_error);
             mvhline(divider_y, hero_left, ACS_HLINE, hero_width);
         } else if (mode == SCREEN_ACTIONS) {
             draw_product_actions(hero_left, hero_width,
                                  &products[selected_product], action_focus,
-                                 can_manage_products);
+                                 selected_can_manage);
         } else if (mode == SCREEN_SALE) {
             draw_sale(screen_height, hero_left, hero_width,
                       &products[selected_product], sale_quantity, sale_crf,
-                      pharmacist_mode, sale_input_focus, status_message,
+                      sale_crf_required, sale_input_focus, status_message,
                       status_is_error);
+        } else if (mode == SCREEN_BRANCH_INFO) {
+            Product *product = &products[selected_product];
+            if (product->branch_index >= 0 &&
+                product->branch_index < branch_count) {
+                draw_branch_info(hero_left, hero_width, product,
+                                 &branches[product->branch_index]);
+            } else {
+                mvaddnstr(5, hero_left + 3,
+                          "Nao foi possivel localizar o endereco da filial.",
+                          hero_width - 6);
+                mvaddnstr(20, hero_left + 3, "Enter/Esc: voltar",
+                          hero_width - 6);
+            }
+        } else if (mode == SCREEN_DELETE_CONFIRM) {
+            draw_delete_confirmation(hero_left, hero_width,
+                                     &products[selected_product], delete_focus);
         } else {
             draw_stock(screen_height, hero_left, hero_width, products,
                        result_indexes, result_count, stock_search,
@@ -631,7 +854,7 @@ int product_screen(char user_id[7], char *user_profile) {
                        stock_scroll, stock_focus == 0 && form_editing);
         }
         attron(A_DIM);
-        if (mode == SCREEN_SALE && pharmacist_mode) {
+        if (mode == SCREEN_SALE && sale_crf_required) {
             mvaddnstr(screen_height - 2, 2,
                       "Tab/Setas: alternar quantidade e CRF | Enter: confirmar | Esc: voltar",
                       screen_width - 4);
@@ -722,6 +945,7 @@ int product_screen(char user_id[7], char *user_profile) {
                 if (menu_focus == 0 && can_manage_products) {
                     clear_product(&form_product);
                     set_product_type(&form_product, PRODUCT_GENERAL);
+                    form_is_edit = 0;
                     if (manager_branch_index >= 0) {
                         form_product.branch_index = manager_branch_index;
                         snprintf(form_product.values[FIELD_BRANCH],
@@ -745,7 +969,7 @@ int product_screen(char user_id[7], char *user_profile) {
                     mode = SCREEN_ACTIONS;
                 }
             }
-        } else if (mode == SCREEN_REGISTER) {
+        } else if (mode == SCREEN_REGISTER || mode == SCREEN_EDIT) {
             if (form_editing) {
                 char *value = form_product.values[form_fields[form_focus]];
                 if (character == '\n' || character == KEY_ENTER ||
@@ -771,7 +995,7 @@ int product_screen(char user_id[7], char *user_profile) {
             } else if ((character == KEY_LEFT || character == KEY_RIGHT) &&
                        form_focus < form_field_count) {
                 ProductField field = form_fields[form_focus];
-                if (field == FIELD_TYPE) {
+                if (field == FIELD_TYPE && !form_is_edit) {
                     int direction = character == KEY_RIGHT ? 1 : -1;
                     set_product_type(&form_product, (ProductType)
                         ((form_product.type + direction + PRODUCT_TYPE_COUNT) %
@@ -793,10 +1017,15 @@ int product_screen(char user_id[7], char *user_profile) {
                 if (form_focus < form_field_count) {
                     ProductField field = form_fields[form_focus];
                     if (field == FIELD_TYPE) {
-                        set_product_type(&form_product, (ProductType)
-                            ((form_product.type + 1) % PRODUCT_TYPE_COUNT));
-                        form_field_count = get_form_fields(form_product.type,
-                                                           form_fields);
+                        if (!form_is_edit) {
+                            set_product_type(&form_product, (ProductType)
+                                ((form_product.type + 1) % PRODUCT_TYPE_COUNT));
+                            form_field_count = get_form_fields(form_product.type,
+                                                               form_fields);
+                        } else {
+                            form_focus = (form_focus + 1) %
+                                         (form_field_count + 2);
+                        }
                     } else if (field == FIELD_BRANCH) {
                         if (branch_count > 0 && manager_branch_index < 0) {
                             form_product.branch_index =
@@ -811,6 +1040,7 @@ int product_screen(char user_id[7], char *user_profile) {
                     }
                 } else if (form_focus == form_field_count) {
                     mode = SCREEN_MENU;
+                    form_is_edit = 0;
                 } else if (form_product.values[FIELD_NAME][0] == '\0' ||
                            form_product.values[FIELD_BRAND][0] == '\0' ||
                            form_product.values[FIELD_DESCRIPTION][0] == '\0' ||
@@ -854,6 +1084,36 @@ int product_screen(char user_id[7], char *user_profile) {
                     snprintf(status_message, sizeof(status_message),
                              "Preencha todos os campos do dermocosmetico.");
                     status_is_error = 1;
+                } else if (form_is_edit) {
+                    ProductDetails details;
+                    int update_result;
+                    fill_product_details(&form_product, branches, &details);
+                    update_result = update_product_presentation(&details,
+                                                               user_id);
+                    if (update_result == 0) {
+                        int refreshed_count;
+                        refreshed_count = refresh_product_list(
+                            products, product_items, branches, branch_count);
+                        if (refreshed_count >= 0) product_count = refreshed_count;
+                        applied_search[0] = '\0';
+                        applied_branch_filter = -1;
+                        selected_product = find_product_by_id(
+                            products, product_count, form_product.id);
+                        if (selected_product < 0 && product_count > 0)
+                            selected_product = 0;
+                        products_scroll = selected_product >= PRODUCTS_PER_PAGE ?
+                            selected_product - PRODUCTS_PER_PAGE + 1 : 0;
+                        snprintf(status_message, sizeof(status_message),
+                                 "Produto atualizado com sucesso.");
+                        status_is_error = 0;
+                        mode = SCREEN_MENU;
+                        menu_focus = product_count > 0 ? 2 : 1;
+                        form_is_edit = 0;
+                    } else {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Falha ao atualizar o produto.");
+                        status_is_error = 1;
+                    }
                 } else if (product_count < MAX_PRODUCTS) {
                     int registration_result;
                     if (form_product.type == PRODUCT_MEDICINE) {
@@ -931,6 +1191,7 @@ int product_screen(char user_id[7], char *user_profile) {
                         selected_product = product_count - 1;
                         mode = SCREEN_MENU;
                         menu_focus = 0;
+                        form_is_edit = 0;
                     } else {
                         snprintf(status_message, sizeof(status_message),
                                  "Falha no cadastro. Confira os campos e tente novamente.");
@@ -943,6 +1204,7 @@ int product_screen(char user_id[7], char *user_profile) {
                 }
             } else if (character == 27) {
                 form_editing = 0;
+                form_is_edit = 0;
                 mode = SCREEN_MENU;
             }
         } else if (mode == SCREEN_ACTIONS) {
@@ -950,44 +1212,84 @@ int product_screen(char user_id[7], char *user_profile) {
                 mode = SCREEN_MENU;
                 menu_focus = 2;
             } else if (character == KEY_UP || character == KEY_DOWN) {
-                if (can_manage_products)
-                    action_focus = (action_focus +
-                        (character == KEY_DOWN ? 1 : 2)) % 3;
+                int action_count = get_product_action_count(
+                    selected_can_manage);
+                action_focus = (action_focus +
+                    (character == KEY_DOWN ? 1 : action_count - 1)) %
+                    action_count;
             } else if (character == '\n' || character == KEY_ENTER) {
-                if (action_focus == 0) {
+                int action = get_product_action_value(action_focus,
+                                                       selected_can_manage);
+                if (action == 0) {
                     sale_quantity[0] = '\0';
                     sale_quantity_length = 0;
                     sale_crf[0] = '\0';
                     sale_crf_length = 0;
                     sale_input_focus = 0;
                     status_message[0] = '\0';
-                    mode = SCREEN_SALE;
-                } else {
-                    snprintf(status_message, sizeof(status_message),
-                             "%s ainda nao esta disponivel.",
-                             action_focus == 1 ? "Edicao" : "Exclusao");
-                    status_is_error = 1;
-                    mode = SCREEN_MENU;
-                    menu_focus = 2;
+                    if (strcmp(user_profile, "atendente") == 0) {
+                        int prescription_required =
+                            product_requires_prescription_presentation(
+                                products[selected_product].id);
+                        if (prescription_required < 0) {
+                            snprintf(status_message, sizeof(status_message),
+                                     "Nao foi possivel consultar a exigencia de receita.");
+                            status_is_error = 1;
+                            mode = SCREEN_MENU;
+                            menu_focus = 2;
+                        } else {
+                            sale_crf_required = prescription_required;
+                            mode = SCREEN_SALE;
+                        }
+                    } else {
+                        sale_crf_required = 0;
+                        mode = SCREEN_SALE;
+                    }
+                } else if (action == 1) {
+                    ProductDetails details;
+                    int detail_status = get_product_details_presentation(
+                        products[selected_product].id, &details);
+                    if (detail_status == 1) {
+                        map_product_details(&form_product, &details, branches,
+                                            branch_count);
+                        form_field_count = get_form_fields(form_product.type,
+                                                           form_fields);
+                        form_focus = 0;
+                        form_editing = 0;
+                        form_is_edit = 1;
+                        status_message[0] = '\0';
+                        mode = SCREEN_EDIT;
+                    } else {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Nao foi possivel carregar o produto para edicao.");
+                        status_is_error = 1;
+                        mode = SCREEN_MENU;
+                        menu_focus = 2;
+                    }
+                } else if (action == 2) {
+                    delete_focus = 0;
+                    mode = SCREEN_DELETE_CONFIRM;
+                } else if (action == 3) {
+                    mode = SCREEN_BRANCH_INFO;
                 }
             }
         } else if (mode == SCREEN_SALE) {
             if (character == 27) {
                 mode = SCREEN_ACTIONS;
                 status_message[0] = '\0';
-            } else if (pharmacist_mode &&
+            } else if (sale_crf_required &&
                        (character == '\t' || character == KEY_UP ||
                         character == KEY_DOWN)) {
                 sale_input_focus = !sale_input_focus;
             } else if (character == KEY_BACKSPACE || character == 127 ||
                        character == 8) {
-                if (pharmacist_mode && sale_input_focus) {
+                if (sale_crf_required && sale_input_focus) {
                     if (sale_crf_length > 0)
                         sale_crf[--sale_crf_length] = '\0';
                 } else if (sale_quantity_length > 0) {
                     sale_quantity[--sale_quantity_length] = '\0';
                 }
-            } else if (pharmacist_mode && sale_input_focus &&
+            } else if (sale_crf_required && sale_input_focus &&
                        character >= 32 && character <= 126 &&
                        sale_crf_length < (int)sizeof(sale_crf) - 1) {
                 sale_crf[sale_crf_length++] = (char)character;
@@ -1002,6 +1304,10 @@ int product_screen(char user_id[7], char *user_profile) {
                 if (sale_quantity_length == 0 || atoi(sale_quantity) <= 0) {
                     snprintf(status_message, sizeof(status_message),
                              "Informe uma quantidade maior que zero.");
+                    status_is_error = 1;
+                } else if (sale_crf_required && sale_crf[0] == '\0') {
+                    snprintf(status_message, sizeof(status_message),
+                             "Informe o CRF de um farmaceutico da filial.");
                     status_is_error = 1;
                 } else if (products[selected_product].branch_index < 0 ||
                            products[selected_product].branch_index >=
@@ -1032,10 +1338,56 @@ int product_screen(char user_id[7], char *user_profile) {
                     menu_focus = 2;
                     sale_crf[0] = '\0';
                     sale_crf_length = 0;
+                    sale_crf_required = 0;
                 } else {
-                    snprintf(status_message, sizeof(status_message),
+                    snprintf(status_message, sizeof(status_message), "%s",
+                             sale_crf_required ?
+                             "CRF nao pertence a filial ou estoque insuficiente." :
                              "Falha na venda. Verifique o estoque disponivel.");
                     status_is_error = 1;
+                }
+            }
+        } else if (mode == SCREEN_BRANCH_INFO) {
+            if (character == 27 || character == '\n' ||
+                character == KEY_ENTER) {
+                mode = SCREEN_ACTIONS;
+            }
+        } else if (mode == SCREEN_DELETE_CONFIRM) {
+            if (character == 27 || character == KEY_LEFT) {
+                mode = SCREEN_ACTIONS;
+            } else if (character == KEY_UP || character == KEY_DOWN ||
+                       character == KEY_LEFT || character == KEY_RIGHT) {
+                delete_focus = !delete_focus;
+            } else if (character == '\n' || character == KEY_ENTER) {
+                if (delete_focus == 0) {
+                    mode = SCREEN_ACTIONS;
+                } else {
+                    int previous_index = selected_product;
+                    int delete_result = delete_product_presentation(
+                        products[selected_product].id, user_id);
+                    if (delete_result == 1) {
+                        int refreshed_count = refresh_product_list(
+                            products, product_items, branches, branch_count);
+                        if (refreshed_count >= 0)
+                            product_count = refreshed_count;
+                        applied_search[0] = '\0';
+                        applied_branch_filter = -1;
+                        selected_product = product_count == 0 ? -1 :
+                            (previous_index < product_count ? previous_index :
+                             product_count - 1);
+                        products_scroll = selected_product >= PRODUCTS_PER_PAGE ?
+                            selected_product - PRODUCTS_PER_PAGE + 1 : 0;
+                        snprintf(status_message, sizeof(status_message),
+                                 "Produto excluido com sucesso.");
+                        status_is_error = 0;
+                        menu_focus = product_count > 0 ? 2 : 1;
+                        mode = SCREEN_MENU;
+                    } else {
+                        snprintf(status_message, sizeof(status_message),
+                                 "Falha ao excluir produto ou permissao negada.");
+                        status_is_error = 1;
+                        mode = SCREEN_ACTIONS;
+                    }
                 }
             }
         } else {

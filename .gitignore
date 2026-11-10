@@ -3,3 +3,4 @@ pharmaStock
 .DS_Store
 .vscode
 .env
+tests/

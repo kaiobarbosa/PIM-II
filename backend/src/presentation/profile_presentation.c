@@ -19,3 +19,22 @@ int update_profile_presentation(const ProfileInfo *info,
         fprintf(stderr, "Erro ao salvar informações do perfil.\n");
     return result;
 }
+
+int request_profile_password_change_code_presentation(
+    const ProfileInfo *info, const char *current_email) {
+    int result = request_profile_password_change_code_use_case(info,
+                                                               current_email);
+    if (result < 0)
+        fprintf(stderr, "Erro ao enviar o codigo de confirmacao.\n");
+    return result;
+}
+
+int confirm_profile_password_change_presentation(
+    const ProfileInfo *info, const char *current_email,
+    const char *verification_code, const char *new_password) {
+    int result = confirm_profile_password_change_use_case(
+        info, current_email, verification_code, new_password);
+    if (result < 0)
+        fprintf(stderr, "Erro ao confirmar a alteracao de senha.\n");
+    return result;
+}

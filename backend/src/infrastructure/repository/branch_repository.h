@@ -7,6 +7,10 @@
 typedef struct {
     char id_filial[7];
     char cep[9];
+    char logradouro[51];
+    char numero[11];
+    char complemento[21];
+    char bairro[51];
     char cidade[51];
     char estado[51];
 } BranchItem;

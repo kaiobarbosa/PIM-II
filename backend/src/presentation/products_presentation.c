@@ -129,6 +129,25 @@ int baixa_produto_estoque_presentation(char id_produto[], char quantidade[],
     return 0;
 }
 
+int product_requires_prescription_presentation(const char *id_produto) {
+    return product_requires_prescription_use_case(id_produto);
+}
+
+int get_product_details_presentation(const char *id_produto,
+                                     ProductDetails *details) {
+    return get_product_details_use_case(id_produto, details);
+}
+
+int update_product_presentation(const ProductDetails *details,
+                                const char *id_funcionario) {
+    return update_product_use_case(details, id_funcionario);
+}
+
+int delete_product_presentation(const char *id_produto,
+                                const char *id_funcionario) {
+    return delete_product_use_case(id_produto, id_funcionario);
+}
+
 int select_produtos_vendidos_by_user_id_presentation(const char *id_user, ProdutoItem *produtos, int max_produtos) {
     int result = select_produtos_vendidos_by_user_id_use_case(id_user, produtos, max_produtos);
 

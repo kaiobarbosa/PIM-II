@@ -5,8 +5,9 @@
 
    - No banco,  inicialmente teremos 6 tabelas: Administrador do sistema -> equipe de TI responsavel por adicionar filiais e sanar panes no sistema.
                                                 Gerência -> Cargo maximo em uma filial. Responsavel pelo CRUD dos medicamentos e adicionar/autorizar novas contas de atendentes e farmaceuticos
-                                                Farmaceutico -> Cargo responsável por autorizar a liberação de medicamentos controlados
-                                                Atendente -> Cargo base da hierarquia... terá autorização de liberar medimentos comuns, dando baixa deles no estoque.
+                                                Farmaceutico -> Pode liberar medicamentos que necessitam de receita; seu CRF pode autorizar a venda de um atendente da mesma filial.
+                                                Atendente -> Pode liberar medicamentos sem receita na própria filial; para medicamentos com receita, informa o CRF de um farmaceutico cadastrado na mesma filial.
+                                                Gerente e diretor -> Podem liberar medicamentos com ou sem receita.
                                                 Filial -> Entidade no qual engloba todos os cargos, exceto os administradores, citados anteriormente.
                                                 Estoque -> Unico na rede inteiro, englobando todas as filiais e seus medicamentos.
 

@@ -185,6 +185,13 @@ foreign key (id_filial) references filial (id_filial)
 );
 
 
+CREATE TABLE IF NOT EXISTS recuperacao_senha (
+    id_recuperacao char(6) unique not null primary key,
+    email_usuario varchar(255) not null,
+    codigo_verificacao char(6) not null,
+    criado_em datetime default current_timestamp
+);
+
 #LOGIN USUARIO
 
 CREATE VIEW vw_login_usuarios AS
