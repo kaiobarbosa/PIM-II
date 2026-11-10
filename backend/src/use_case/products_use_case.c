@@ -59,6 +59,75 @@ int product_requires_prescription_use_case(const char *id_produto) {
     return result;
 }
 
+int get_product_details_use_case(const char *id_produto,
+                                 ProductDetails *details) {
+    return get_product_details(id_produto, details);
+}
+
+int update_product_use_case(const ProductDetails *details,
+                            const char *id_funcionario) {
+    int numeric_status;
+    if (details == NULL || id_funcionario == NULL ||
+        id_funcionario[0] == '\0' ||
+        verify_null_fields_products(details->nome, details->marca,
+                                    details->descricao, details->preco,
+                                    details->codigo_de_barras,
+                                    details->quantidade,
+                                    details->id_filial) == -1 ||
+        verify_internal_code_format(details->id_filial) == 0) {
+        fprintf(stderr, "Erro: dados do produto incompletos ou inválidos.\n");
+        return -1;
+    }
+    numeric_status = verify_numeric_fields_products(
+        details->preco, details->quantidade, details->codigo_de_barras);
+    if (numeric_status != 1 || details->kind < PRODUCT_KIND_GENERAL ||
+        details->kind > PRODUCT_KIND_EQUIPMENT) {
+        fprintf(stderr, "Erro: campos numéricos ou tipo do produto inválidos.\n");
+        return -1;
+    }
+    if (details->kind == PRODUCT_KIND_MEDICINE &&
+        (details->principio_ativo[0] == '\0' ||
+         details->forma_farmaceutica[0] == '\0' ||
+         details->concentracao[0] == '\0' || details->tarja[0] == '\0' ||
+         details->tipagem[0] == '\0' ||
+         (strcmp(details->receita, "sim") != 0 &&
+          strcmp(details->receita, "nao") != 0 &&
+          strcmp(details->receita, "não") != 0 &&
+          strcmp(details->receita, "0") != 0 &&
+          strcmp(details->receita, "1") != 0))) {
+        fprintf(stderr, "Erro: dados do medicamento inválidos.\n");
+        return -1;
+    }
+    if (details->kind == PRODUCT_KIND_DERMOCOSMETIC &&
+        (details->tipo_pele[0] == '\0' || details->volume[0] == '\0' ||
+         details->fator_protecao[0] == '\0' || details->indicacao[0] == '\0')) {
+        fprintf(stderr, "Erro: dados do dermocosmético inválidos.\n");
+        return -1;
+    }
+    if (details->kind == PRODUCT_KIND_EQUIPMENT &&
+        (details->modelo[0] == '\0' || details->fabricante[0] == '\0' ||
+         details->especificacoes[0] == '\0' || details->garantia[0] == '\0')) {
+        fprintf(stderr, "Erro: dados do equipamento inválidos.\n");
+        return -1;
+    }
+    if (!user_can_manage_product(id_funcionario, details->id_produto,
+                                 details->id_filial)) {
+        fprintf(stderr, "Erro: o usuário não pode editar este produto.\n");
+        return -1;
+    }
+    return update_product_details(details);
+}
+
+int delete_product_use_case(const char *id_produto,
+                            const char *id_funcionario) {
+    if (id_produto == NULL || id_funcionario == NULL ||
+        !user_can_manage_product(id_funcionario, id_produto, NULL)) {
+        fprintf(stderr, "Erro: o usuário não pode excluir este produto.\n");
+        return -1;
+    }
+    return remove_product(id_produto);
+}
+
 int select_products_by_filial_and_name_use_case(ProdutoItem *produtos, int max_produtos, const char *filial, const char *nome) {
     int count = select_products_by_filial_and_name(produtos, max_produtos, filial, nome);
 

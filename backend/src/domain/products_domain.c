@@ -2,7 +2,10 @@
 #include <string.h>
 #include <ctype.h>
 
-int verify_null_fields_products(char nome[], char marca[], char descricao[], char preco[], char cod_barras[], char quantidade[], char filial[]) {
+int verify_null_fields_products(const char *nome, const char *marca,
+                                const char *descricao, const char *preco,
+                                const char *cod_barras, const char *quantidade,
+                                const char *filial) {
     if (nome[0] == '\0' || marca[0] == '\0' || descricao[0] == '\0' || preco[0] == '\0' || cod_barras[0] == '\0' || quantidade[0] == '\0' || filial[0] == '\0') {
         return -1;
     }
@@ -52,7 +55,8 @@ static int is_valid_price(const char *str) {
     return 1;
 }
 
-int verify_numeric_fields_products(char preco[], char quantidade[], char cod_barras[]) {
+int verify_numeric_fields_products(const char *preco, const char *quantidade,
+                                   const char *cod_barras) {
     if (is_valid_price(preco) == -1) {
         return -1; 
     }

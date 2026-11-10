@@ -7,6 +7,12 @@ int baixa_produto_estoque_use_case(char id_produto[], char quantidade[],
                                    char filial[], char id_funcionario[],
                                    char crf[]);
 int product_requires_prescription_use_case(const char *id_produto);
+int get_product_details_use_case(const char *id_produto,
+                                 ProductDetails *details);
+int update_product_use_case(const ProductDetails *details,
+                            const char *id_funcionario);
+int delete_product_use_case(const char *id_produto,
+                            const char *id_funcionario);
 int get_quantidade_produto_by_id_use_case(const char *id_produto, const char *filial);
 int select_all_products_use_case(ProdutoItem *produtos, int max_produtos);
 int select_products_by_name_use_case(ProdutoItem *produtos, int max_produtos, const char *nome);
