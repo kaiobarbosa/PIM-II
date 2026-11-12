@@ -9,6 +9,8 @@
 #include "backend/src/infrastructure/repository/pharmacist_repository.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
 #include "backend/src/infrastructure/repository/access_control_repository.h"
+#include "backend/src/infrastructure/repository/branch_repository.h"
+#include "backend/src/infrastructure/logging/csv_logger.h"
 
 int create_new_pharmacist (char name_pharmacist[], char last_name_pharmacist[], char internal_code_pharmacist[], char crf[], char email_pharmacist[], char password_pharmacist[], char id_branch[], char id_supervisor[]) {
     char supervisor_profile[20] = "";
@@ -67,6 +69,27 @@ int create_new_pharmacist (char name_pharmacist[], char last_name_pharmacist[], 
         return -1;
     }
 
+    char branch_cep[9] = "";
+    char full_name[102];
+    snprintf(full_name, sizeof(full_name), "%s %s", name_pharmacist,
+             last_name_pharmacist);
+    if (get_branch_cep_by_id(id_branch, branch_cep,
+                             sizeof(branch_cep)) != 1) {
+        fprintf(stderr, "Aviso: não foi possível consultar o CEP da filial do farmacêutico.\n");
+    }
+    ApplicationLogEntry log_entry = {
+        .event = "user_created",
+        .entity = "user",
+        .entity_id = id_pharmacist,
+        .entity_name = full_name,
+        .actor_id = id_supervisor,
+        .branch_id = id_branch,
+        .branch_cep = branch_cep,
+        .quantity = "",
+        .details = "profile=farmaceutico"
+    };
+    if (append_application_log(&log_entry) != 0)
+        fprintf(stderr, "Aviso: não foi possível registrar a criação do farmacêutico no CSV.\n");
 
     return 0;
     

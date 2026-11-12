@@ -8,6 +8,8 @@
 #include "backend/src/infrastructure/repository/login_repository.h"
 #include "backend/src/infrastructure/repository/product_repository.h"
 #include "backend/src/infrastructure/repository/access_control_repository.h"
+#include "backend/src/infrastructure/repository/branch_repository.h"
+#include "backend/src/infrastructure/logging/csv_logger.h"
 #include "backend/src/utils/generate_id.h"
 
 #include "backend/src/use_case/products_use_case.h"
@@ -115,7 +117,44 @@ int update_product_use_case(const ProductDetails *details,
         fprintf(stderr, "Erro: o usuário não pode editar este produto.\n");
         return -1;
     }
-    return update_product_details(details);
+    ProductDetails previous_details = {0};
+    if (get_product_details(details->id_produto, &previous_details) != 1) {
+        fprintf(stderr, "Erro ao consultar o produto antes da edição.\n");
+        return -1;
+    }
+    if (update_product_details(details) == -1) return -1;
+
+    long previous_quantity = strtol(previous_details.quantidade, NULL, 10);
+    long updated_quantity = strtol(details->quantidade, NULL, 10);
+    long quantity_delta = updated_quantity - previous_quantity;
+    if (quantity_delta != 0) {
+        char branch_cep[9] = "";
+        char quantity[32];
+        char log_details[96];
+        if (get_branch_cep_by_id(details->id_filial, branch_cep,
+                                 sizeof(branch_cep)) != 1) {
+            fprintf(stderr, "Aviso: não foi possível consultar o CEP da filial do produto.\n");
+        }
+        snprintf(quantity, sizeof(quantity), "%+ld", quantity_delta);
+        snprintf(log_details, sizeof(log_details),
+                 "previous_quantity=%s;new_quantity=%s",
+                 previous_details.quantidade, details->quantidade);
+        ApplicationLogEntry log_entry = {
+            .event = quantity_delta > 0 ? "stock_incremented" :
+                                         "stock_decreased",
+            .entity = "product",
+            .entity_id = details->id_produto,
+            .entity_name = details->nome,
+            .actor_id = id_funcionario,
+            .branch_id = details->id_filial,
+            .branch_cep = branch_cep,
+            .quantity = quantity,
+            .details = log_details
+        };
+        if (append_application_log(&log_entry) != 0)
+            fprintf(stderr, "Aviso: não foi possível registrar a alteração de estoque no CSV.\n");
+    }
+    return 0;
 }
 
 int delete_product_use_case(const char *id_produto,
@@ -183,14 +222,32 @@ int products_use_case(char nome[], char marca[], char descricao[],
                        cod_barras, quantidade, filial) == -1) {
         fprintf(stderr, "Erro ao criar produto.\n");
         return -1;
-    }else{
-        char id_log[7];
-        generate_id(id_log);
-        if (create_log_product(id_log, "Criação", generated_id,
-                               id_funcionario, filial, NULL) == -1) {
-            fprintf(stderr, "Erro ao criar log de produto.\n");
-            return -1;
-        }
+    }
+
+    char branch_cep[9] = "";
+    if (get_branch_cep_by_id(filial, branch_cep, sizeof(branch_cep)) != 1) {
+        fprintf(stderr, "Aviso: não foi possível consultar o CEP da filial do produto.\n");
+    }
+    ApplicationLogEntry product_log = {
+        .event = "product_created",
+        .entity = "product",
+        .entity_id = generated_id,
+        .entity_name = nome,
+        .actor_id = id_funcionario,
+        .branch_id = filial,
+        .branch_cep = branch_cep,
+        .quantity = quantidade,
+        .details = "initial_stock"
+    };
+    if (append_application_log(&product_log) != 0)
+        fprintf(stderr, "Aviso: não foi possível registrar a criação do produto no CSV.\n");
+
+    char id_log[7];
+    generate_id(id_log);
+    if (create_log_product(id_log, "Criação", generated_id,
+                           id_funcionario, filial, NULL) == -1) {
+        fprintf(stderr, "Erro ao criar log de produto.\n");
+        return -1;
     }
 
     snprintf(id_product, 7, "%s", generated_id);
@@ -316,6 +373,12 @@ int baixa_produto_estoque_use_case(char id_produto[], char quantidade[],
         return -1;
     }
 
+    ProductDetails product_details = {0};
+    if (get_product_details(id_produto, &product_details) != 1) {
+        fprintf(stderr, "Erro ao consultar o produto para registrar a venda.\n");
+        return -1;
+    }
+
     int numeric_status = verify_numeric_fields_baixa(quantidade);
 
     if (numeric_status == -1) {
@@ -347,6 +410,24 @@ int baixa_produto_estoque_use_case(char id_produto[], char quantidade[],
         fprintf(stderr, "Erro ao realizar e registrar a venda do produto.\n");
         return -1;
     }
+
+    char branch_cep[9] = "";
+    if (get_branch_cep_by_id(filial, branch_cep, sizeof(branch_cep)) != 1) {
+        fprintf(stderr, "Aviso: não foi possível consultar o CEP da filial da venda.\n");
+    }
+    ApplicationLogEntry sale_log = {
+        .event = "product_sale",
+        .entity = "product",
+        .entity_id = id_produto,
+        .entity_name = product_details.nome,
+        .actor_id = id_funcionario,
+        .branch_id = filial,
+        .branch_cep = branch_cep,
+        .quantity = quantidade,
+        .details = "sale"
+    };
+    if (append_application_log(&sale_log) != 0)
+        fprintf(stderr, "Aviso: não foi possível registrar a venda no CSV.\n");
 
     return 0;
 }

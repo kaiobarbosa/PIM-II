@@ -6,6 +6,7 @@
 #include "backend/src/use_case/branch_use_case.h"
 #include "backend/src/infrastructure/repository/branch_repository.h"
 #include "backend/src/infrastructure/repository/access_control_repository.h"
+#include "backend/src/infrastructure/logging/csv_logger.h"
 
 int create_new_branch(char id_user[], char cep[], char logradouro[], char numero[], char complemento[], char bairro[], char cidade[], char estado[]) {
     char profile[20] = "";
@@ -39,6 +40,24 @@ int create_new_branch(char id_user[], char cep[], char logradouro[], char numero
         fprintf(stderr, "Erro ao criar filial.\n");
         return -1;
     }
+
+    char address_details[512];
+    snprintf(address_details, sizeof(address_details),
+             "logradouro=%s; numero=%s; complemento=%s; bairro=%s; cidade=%s; estado=%s",
+             logradouro, numero, complemento, bairro, cidade, estado);
+    ApplicationLogEntry log_entry = {
+        .event = "branch_created",
+        .entity = "branch",
+        .entity_id = id_branch,
+        .entity_name = "Filial",
+        .actor_id = id_user,
+        .branch_id = id_branch,
+        .branch_cep = cep,
+        .quantity = "",
+        .details = address_details
+    };
+    if (append_application_log(&log_entry) != 0)
+        fprintf(stderr, "Aviso: não foi possível registrar a criação da filial no CSV.\n");
     
     return 0;
 }

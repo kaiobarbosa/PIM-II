@@ -732,7 +732,8 @@ int employee_screen(char user_id[7], char *user_profile) {
                             form_employee.last_name,
                             form_employee.code,
                             form_employee.email,
-                            form_employee.password);
+                            form_employee.password,
+                            user_id != NULL ? user_id : "");
                     } else if (form_employee.role == ROLE_MANAGER &&
                                user_id != NULL && user_id[0] != '\0') {
                         employee_type = "gerente";

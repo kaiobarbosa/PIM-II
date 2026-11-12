@@ -8,6 +8,8 @@
 #include "backend/src/domain/validation/password_crypt.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
 #include "backend/src/infrastructure/repository/access_control_repository.h"
+#include "backend/src/infrastructure/repository/branch_repository.h"
+#include "backend/src/infrastructure/logging/csv_logger.h"
 
 int create_new_manager (char name_manager[], char last_name_manager[], char internal_code_manager[], char branch_manager[], char email_manager[], char password_manager[], char id_director[]) {
     char supervisor_profile[20] = "";
@@ -52,6 +54,27 @@ int create_new_manager (char name_manager[], char last_name_manager[], char inte
         return -1;
     }
 
+    char branch_cep[9] = "";
+    char full_name[102];
+    snprintf(full_name, sizeof(full_name), "%s %s", name_manager,
+             last_name_manager);
+    if (get_branch_cep_by_id(branch_manager, branch_cep,
+                             sizeof(branch_cep)) != 1) {
+        fprintf(stderr, "Aviso: não foi possível consultar o CEP da filial do gerente.\n");
+    }
+    ApplicationLogEntry log_entry = {
+        .event = "user_created",
+        .entity = "user",
+        .entity_id = id_manager,
+        .entity_name = full_name,
+        .actor_id = id_director,
+        .branch_id = branch_manager,
+        .branch_cep = branch_cep,
+        .quantity = "",
+        .details = "profile=gerente"
+    };
+    if (append_application_log(&log_entry) != 0)
+        fprintf(stderr, "Aviso: não foi possível registrar a criação do gerente no CSV.\n");
 
     return 0;
 }

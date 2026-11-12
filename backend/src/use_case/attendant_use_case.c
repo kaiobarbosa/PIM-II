@@ -10,6 +10,8 @@
 #include "backend/src/infrastructure/repository/attendant_repository.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
 #include "backend/src/infrastructure/repository/access_control_repository.h"
+#include "backend/src/infrastructure/repository/branch_repository.h"
+#include "backend/src/infrastructure/logging/csv_logger.h"
 
 int create_new_attendant (char name_attendant[], char last_name_attendant[], char email_attendant[], char password_attendant[], char id_branch[], char id_supervisor[]) {
 
@@ -61,6 +63,28 @@ int create_new_attendant (char name_attendant[], char last_name_attendant[], cha
         fprintf(stderr, "Erro ao criar atendente.\n");
         return -1;
     }
+
+    char branch_cep[9] = "";
+    char full_name[102];
+    snprintf(full_name, sizeof(full_name), "%s %s", name_attendant,
+             last_name_attendant);
+    if (get_branch_cep_by_id(id_branch, branch_cep,
+                             sizeof(branch_cep)) != 1) {
+        fprintf(stderr, "Aviso: não foi possível consultar o CEP da filial do atendente.\n");
+    }
+    ApplicationLogEntry log_entry = {
+        .event = "user_created",
+        .entity = "user",
+        .entity_id = id_attendant,
+        .entity_name = full_name,
+        .actor_id = id_supervisor,
+        .branch_id = id_branch,
+        .branch_cep = branch_cep,
+        .quantity = "",
+        .details = "profile=atendente"
+    };
+    if (append_application_log(&log_entry) != 0)
+        fprintf(stderr, "Aviso: não foi possível registrar a criação do atendente no CSV.\n");
 
     return 0;
 }

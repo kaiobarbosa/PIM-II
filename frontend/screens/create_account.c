@@ -232,7 +232,7 @@ void create_account_screen() {
 
         if (register_new_director(director_name, director_last_name,
                                   director_internal_code, director_email,
-                                  director_password) == 0) {
+                                  director_password, "SYSTEM") == 0) {
             break;
         }
 
