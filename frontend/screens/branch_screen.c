@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include "frontend/components/unicode_input.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -7,8 +8,6 @@
 #include "frontend/screens/home_screen.h"
 #include "backend/src/presentation/branch_presentation.h"
 
-#define MIN_SCREEN_HEIGHT 24
-#define MIN_SCREEN_WIDTH 70
 #define MAX_BRANCHES 10
 #define MAX_BRANCH_FIELDS 8
 
@@ -109,23 +108,23 @@ static void draw_branch_list(int screen_height, int hero_left, int hero_width,
     int visible_count = (screen_height - divider_y - 9) / 2;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, hero_left + 4, "GERENCIAMENTO DE FILIAIS", hero_width - 8);
+    mvadd_utf8_clipped(2, hero_left + 4, "GERENCIAMENTO DE FILIAIS", hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvhline(4, hero_left + 2, ACS_HLINE, hero_width - 4);
 
     if (can_create) {
         if (focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-        mvaddnstr(6, hero_left + 4, "+ Cadastrar nova filial", hero_width - 8);
+        mvadd_utf8_clipped(6, hero_left + 4, "+ Cadastrar nova filial", hero_width - 8);
         if (focus == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
 
     mvhline(divider_y, hero_left, ACS_HLINE, hero_width);
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(divider_y + 2, hero_left + 4, "FILIAIS CADASTRADAS",
+    mvadd_utf8_clipped(divider_y + 2, hero_left + 4, "FILIAIS CADASTRADAS",
               hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(divider_y + 4, hero_left + 4, "CEP", content_width / 2);
-    mvaddnstr(divider_y + 4, hero_left + 4 + content_width / 2,
+    mvadd_utf8_clipped(divider_y + 4, hero_left + 4, "CEP", content_width / 2);
+    mvadd_utf8_clipped(divider_y + 4, hero_left + 4 + content_width / 2,
               "CIDADE / UF", content_width / 2);
     mvhline(divider_y + 5, hero_left + 4, ACS_HLINE, content_width);
 
@@ -144,9 +143,9 @@ static void draw_branch_list(int screen_height, int hero_left, int hero_width,
         } else if (!branches[branch_index].active) {
             attron(A_DIM);
         }
-        mvaddnstr(y, hero_left + 4, branches[branch_index].postal_code,
+        mvadd_utf8_clipped(y, hero_left + 4, branches[branch_index].postal_code,
                   content_width / 2);
-        mvaddnstr(y, hero_left + 4 + content_width / 2, location,
+        mvadd_utf8_clipped(y, hero_left + 4 + content_width / 2, location,
                   content_width / 2);
         if (focus == branch_index + 1) {
             attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
@@ -169,7 +168,7 @@ static void draw_branch_form(int screen_height, int hero_left, int hero_width,
     int buttons_y = screen_height - 4;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(title_y, hero_left + 4,
+    mvadd_utf8_clipped(title_y, hero_left + 4,
               editing ? "EDITAR FILIAL" : "CADASTRAR FILIAL", hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvhline(divider_y + 2, hero_left + 2, ACS_HLINE, hero_width - 4);
@@ -180,7 +179,7 @@ static void draw_branch_form(int screen_height, int hero_left, int hero_width,
         int selected = focus == index;
         char *value = get_branch_value(branch, fields[index], &capacity);
 
-        mvaddnstr(y, label_x, field_labels[fields[index]], 15);
+        mvadd_utf8_clipped(y, label_x, field_labels[fields[index]], 15);
         if (selected) {
             attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         } else {
@@ -189,9 +188,9 @@ static void draw_branch_form(int screen_height, int hero_left, int hero_width,
         mvaddch(y, value_x, '[');
         mvhline(y, value_x + 1, ' ', field_width - 2);
         mvaddch(y, value_x + field_width - 1, ']');
-        mvaddnstr(y, value_x + 2, value, field_width - 4);
+        mvadd_utf8_clipped(y, value_x + 2, value, field_width - 4);
         if (selected && text_editing) {
-            int cursor_x = value_x + 2 + (int) strlen(value);
+            int cursor_x = value_x + 2 + input_string_display_width(value);
             int max_x = value_x + field_width - 2;
             if (cursor_x > max_x) cursor_x = max_x;
             move(y, cursor_x);
@@ -206,7 +205,7 @@ static void draw_branch_form(int screen_height, int hero_left, int hero_width,
     if (focus == field_count) {
         attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
-    mvaddnstr(buttons_y, hero_left + 4, "[ CANCELAR ]", 14);
+    mvadd_utf8_clipped(buttons_y, hero_left + 4, "[ CANCELAR ]", 14);
     if (focus == field_count) {
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
@@ -214,7 +213,7 @@ static void draw_branch_form(int screen_height, int hero_left, int hero_width,
     if (focus == field_count + 1) {
         attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
-    mvaddnstr(buttons_y, hero_left + 23,
+    mvadd_utf8_clipped(buttons_y, hero_left + 23,
               editing ? "[ CONFIRMAR ]" : "[ CADASTRAR ]", 16);
     if (focus == field_count + 1) {
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
@@ -230,14 +229,14 @@ static void draw_choice(int hero_left, int hero_width, int divider_y,
     int option_y = divider_y + 6;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(title_y, hero_left + 4, title, hero_width - 8);
+    mvadd_utf8_clipped(title_y, hero_left + 4, title, hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(title_y + 2, hero_left + 4, message, hero_width - 8);
+    mvadd_utf8_clipped(title_y + 2, hero_left + 4, message, hero_width - 8);
     if (focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(option_y, center_x - 14, first_option, 12);
+    mvadd_utf8_clipped(option_y, center_x - 14, first_option, 12);
     if (focus == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     if (focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(option_y, center_x + 2, second_option, 12);
+    mvadd_utf8_clipped(option_y, center_x + 2, second_option, 12);
     if (focus == 1) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
 }
 
@@ -279,19 +278,19 @@ static void draw_branch_screen(int screen_height, int screen_width,
 
     if (status_message[0] != '\0') {
         attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
-        mvaddnstr(screen_height - 3, hero_left + 4, status_message,
+        mvadd_utf8_clipped(screen_height - 3, hero_left + 4, status_message,
                   hero_width - 8);
         attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
     }
 
     attron(A_DIM);
     if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
-        mvaddnstr(screen_height - 2, 2,
+        mvadd_utf8_clipped(screen_height - 2, 2,
                   form_editing ? "Digite o valor  |  Enter: concluir edicao  |  Esc: cancelar campo" :
                   "Setas: navegar  |  Enter: editar/selecionar  |  Esc: voltar",
                   screen_width - 4);
     } else {
-        mvaddnstr(screen_height - 2, 2,
+        mvadd_utf8_clipped(screen_height - 2, 2,
                   "Setas: navegar  |  Enter: selecionar  |  Esc: voltar",
                   screen_width - 4);
     }
@@ -345,16 +344,6 @@ int branch_screen(char user_id[7], char *user_profile) {
         branches[index].active = 1;
     }
 
-    getmaxyx(stdscr, screen_height, screen_width);
-    if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
-        draw_resize_message(screen_height, screen_width);
-        return APP_SCREEN_HOME;
-    }
-
-    sidebar_width = screen_width / 3;
-    hero_left = sidebar_width + 1;
-    hero_width = screen_width - hero_left - 1;
-    divider_y = 1 + (screen_height - 2) / 3;
     keypad(stdscr, TRUE);
     clear_branch(&form_branch);
     if (!director_mode && branch_count > 0) branch_focus = 1;
@@ -363,6 +352,13 @@ int branch_screen(char user_id[7], char *user_profile) {
         BranchField fields[MAX_BRANCH_FIELDS];
         int field_count = 0;
         int character_is_confirm;
+
+        wait_for_minimum_terminal_size();
+        getmaxyx(stdscr, screen_height, screen_width);
+        sidebar_width = screen_width / 3;
+        hero_left = sidebar_width + 1;
+        hero_width = screen_width - hero_left - 1;
+        divider_y = 1 + (screen_height - 2) / 3;
 
         if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
             get_branch_fields(screen == SCREEN_EDIT_FORM, fields, &field_count);
@@ -375,7 +371,8 @@ int branch_screen(char user_id[7], char *user_profile) {
                            sidebar_focus, is_in_sidebar, status_message,
                            status_is_error, user_profile);
 
-        character = getch();
+        character = read_input_character();
+        if (character == KEY_RESIZE) continue;
         character_is_confirm = character == '\n' || character == KEY_ENTER;
 
         if (is_in_sidebar) {
@@ -493,13 +490,11 @@ int branch_screen(char user_id[7], char *user_profile) {
                     form_editing = 0;
                 } else if (character == KEY_BACKSPACE || character == 127 ||
                            character == 8) {
-                    int length = (int) strlen(value);
-                    if (length > 0) value[length - 1] = '\0';
-                } else if (character >= 32 && character <= 255 &&
-                           strlen(value) < (size_t) capacity - 1) {
-                    int length = (int) strlen(value);
-                    value[length] = (char) character;
-                    value[length + 1] = '\0';
+                    input_backspace(value);
+                } else if (input_character_is_printable(character)) {
+                    size_t length = strlen(value);
+                    input_character_append(value, (size_t)capacity, &length,
+                                           character);
                 }
             } else if (character == KEY_UP) {
                 form_focus = form_focus == 0 ? current_field_count + 1 :

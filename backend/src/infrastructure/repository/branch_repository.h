@@ -2,6 +2,7 @@
 #define BRANCH_REPOSITORY_H
 
 #include <mysql/mysql.h>
+#include <stddef.h>
 
 // 1. Criamos um "molde" para guardar os dados da filial que vêm do banco
 typedef struct {
@@ -17,6 +18,7 @@ typedef struct {
 
 int create_new_address(const char *id, const char *cep, const char *logradouro, const char *numero, const char *complemento, const char *bairro, const char *cidade, const char *estado);
 int create_branch(const char *id_branch, const char *id_address, const char *id_user);
+int get_branch_cep_by_id(const char *id_branch, char *cep, size_t capacity);
 
 // 2. Assinatura da nova função
 // Ela vai retornar o número de filiais encontradas, e vai preencher o array 'branches'

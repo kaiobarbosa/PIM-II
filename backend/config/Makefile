@@ -7,6 +7,7 @@ SRC = main.c \
       backend/config/env_parser.c \
       backend/config/database_connector.c \
       backend/src/infrastructure/repository/query_executor.c \
+      backend/src/infrastructure/logging/csv_logger.c \
       backend/src/use_case/director_use_case.c \
       backend/src/infrastructure/repository/director_repository.c\
       frontend/screens/create_account.c \
@@ -24,6 +25,7 @@ SRC = main.c \
       frontend/screens/home_screen.c\
       frontend/screens/profile_screen.c\
       frontend/components/sidebar.c\
+      frontend/components/unicode_input.c\
       frontend/screens/employees_screen.c\
       backend/src/presentation/manager_presentation.c\
       backend/src/use_case/manager_use_case.c\

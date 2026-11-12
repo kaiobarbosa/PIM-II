@@ -4,6 +4,7 @@
 #include "backend/src/domain/validation/password_crypt.h" 
 #include "backend/src/utils/verify_user_informations.h"
 #include "backend/src/infrastructure/repository/login_repository.h"
+#include "backend/src/infrastructure/logging/csv_logger.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +22,9 @@ int check_first_use() {
     }
 }
 
-int create_director(char name_director[], char last_name_director[], char internal_code_director[], char email_director[], char password_director[]) {
+int create_director(char name_director[], char last_name_director[],
+                    char internal_code_director[], char email_director[],
+                    char password_director[], char creator_id[]) {
     
     char id_director[7];
     do {
@@ -49,6 +52,24 @@ int create_director(char name_director[], char last_name_director[], char intern
     }else {
         printf("Diretor criado com sucesso!\n");
     }
+
+    char full_name[102];
+    snprintf(full_name, sizeof(full_name), "%s %s", name_director,
+             last_name_director);
+    ApplicationLogEntry log_entry = {
+        .event = "user_created",
+        .entity = "user",
+        .entity_id = id_director,
+        .entity_name = full_name,
+        .actor_id = creator_id != NULL && creator_id[0] != '\0' ?
+                    creator_id : "SYSTEM",
+        .branch_id = "",
+        .branch_cep = "",
+        .quantity = "",
+        .details = "profile=diretor"
+    };
+    if (append_application_log(&log_entry) != 0)
+        fprintf(stderr, "Aviso: não foi possível registrar a criação do diretor no CSV.\n");
 
     return 0;
 }

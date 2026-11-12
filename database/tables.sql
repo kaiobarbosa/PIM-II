@@ -2,7 +2,9 @@
 -- Autores: José Antonio de Oliveira Rosa && Kaio Eduardo Braga Barbosa
 
 -- nome do banco => pharma_database
-create database pharma_database;
+create database pharma_database
+    character set utf8mb4
+    collate utf8mb4_unicode_ci;
 
 -- Para a edição/criação das tabelas, precisa ser selecionado o banco de dados.
 use pharma_database;
@@ -176,6 +178,7 @@ foreign key (id_filial) references filial (id_filial)
 create table log_produto (
 id_log char(6) unique not null primary key,
 data_log date,
+quantidade_produto varchar(20),
 acao_log varchar(20) not null,
 id_produto char(6) not null,
 funcionario_id char(6) not null,
@@ -184,8 +187,7 @@ foreign key (id_produto) references produto (id_produto),
 foreign key (id_filial) references filial (id_filial)
 );
 
-
-CREATE TABLE IF NOT EXISTS recuperacao_senha (
+CREATE TABLE recuperacao_senha (
     id_recuperacao char(6) unique not null primary key,
     email_usuario varchar(255) not null,
     codigo_verificacao char(6) not null,
@@ -315,7 +317,7 @@ SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos order 
 -- 1. PRODUTOS COMUNS (Não necessitam de classificação, vão apenas para a tabela base)
 -- --------------------------------------------------------------------------------------
 #INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) VALUES
-#('PROD01', 'Energetico Red Bull', 'Red Bull', 'Lata de energetico 250ml', '11.99', '7891234567890', '50', 'AGWX2M'),
+#('PROD01', 'Energetico Red Bull', 'Red Bull', 'Lata de energetico 250ml', '11.99', '7891234567890', '50', 'AGWX2M');
 #('PROD02', 'Fralda Pampers M', 'Pampers', 'Fralda pacote com 40 unidades', '59.90', '7891234567891', '30', 'AGWX2M');
 
 
@@ -331,7 +333,7 @@ SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos order 
 #INSERT INTO medicamento (id_medicamento, principio_ativo, forma_farmaceutica, concentracao, tarja, receita, tipagem) VALUES
 #('MED001', 'Paracetamol', 'Comprimido', '750mg', 'Sem Tarja', 1, 'Generico'),
 #('MED002', 'Amoxicilina', 'Capsula', '500mg', 'Vermelha', 0, 'Generico'),
-#'MED003', 'Omeprazol', 'Capsula', '20mg', 'Vermelha', 1, 'Generico');
+#('MED003', 'Omeprazol', 'Capsula', '20mg', 'Vermelha', 1, 'Generico');
 
 #INSERT INTO produto_medicamento (id_produto, id_medicamento) VALUES
 #('PROD03', 'MED001'),
@@ -358,17 +360,17 @@ SELECT id_produto, nome, preco, quantidade, filial FROM vw_busca_produtos order 
 -- --------------------------------------------------------------------------------------
 -- 4. EQUIPAMENTOS (Preenchimento das 3 tabelas exigidas)
 -- --------------------------------------------------------------------------------------
-INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) VALUES
-('PROD08', 'Termometro Digital', 'G-Tech', 'Termometro clinico digital branco', '22.00', '7891234567897', '40', 'AGWX2M'),
-('PROD09', 'Aparelho de Pressao', 'Omron', 'Esfigmomanometro digital de braco', '199.90', '7891234567898', '15', 'AGWX2M');
+#INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) VALUES
+#('PROD08', 'Termometro Digital', 'G-Tech', 'Termometro clinico digital branco', '22.00', '7891234567897', '40', 'AGWX2M'),
+#('PROD09', 'Aparelho de Pressao', 'Omron', 'Esfigmomanometro digital de braco', '199.90', '7891234567898', '15', 'AGWX2M');
 
-INSERT INTO equipamentos (id_equipamentos, modelo, fabricante, especificacoes, garantia) VALUES
-('EQP001', 'TH100', 'G-Tech', 'Medicao em graus Celsius, bipe sonoro', '1 ano'),
-('EQP002', 'HEM-7122', 'Omron', 'Digital automatico, detector de arritmia', '5 anos');
+#INSERT INTO equipamentos (id_equipamentos, modelo, fabricante, especificacoes, garantia) VALUES
+#('EQP001', 'TH100', 'G-Tech', 'Medicao em graus Celsius, bipe sonoro', '1 ano'),
+#('EQP002', 'HEM-7122', 'Omron', 'Digital automatico, detector de arritmia', '5 anos');
 
-INSERT INTO produto_equipamento (id_produto, id_equipamentos) VALUES
-('PROD08', 'EQP001'),
-('PROD09', 'EQP002');
+#INSERT INTO produto_equipamento (id_produto, id_equipamentos) VALUES
+#('PROD08', 'EQP001'),
+#('PROD09', 'EQP002');
 
 
 #select * from filial;
@@ -379,6 +381,7 @@ INSERT INTO produto_equipamento (id_produto, id_equipamentos) VALUES
 #select * from farmaceutico;
 #select * from atendente;
 
+#select * from produto;
 #select * from produto order by id_filial;
 #select * from medicamento;
 #select * from produto_medicamento;

@@ -3,6 +3,7 @@
 
 int check_first_use();
 
-int create_director(char name[], char last_name[], char internal_code[], char email[], char password[]);
+int create_director(char name[], char last_name[], char internal_code[],
+                    char email[], char password[], char creator_id[]);
 
 #endif

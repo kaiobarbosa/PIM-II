@@ -44,6 +44,46 @@ int create_branch(const char *id_branch, const char *id_address, const char *id_
     return 0;
 }
 
+int get_branch_cep_by_id(const char *id_branch, char *cep, size_t capacity) {
+    MYSQL *conn;
+    MYSQL_RES *result;
+    MYSQL_ROW row;
+    char escaped_id[13];
+    char query[256];
+
+    if (id_branch == NULL || cep == NULL || capacity == 0 ||
+        strlen(id_branch) != 6) {
+        return -1;
+    }
+    conn = connect_to_database();
+    if (conn == NULL) return -1;
+
+    mysql_real_escape_string(conn, escaped_id, id_branch,
+                             (unsigned long)strlen(id_branch));
+    snprintf(query, sizeof(query),
+             "SELECT e.cep FROM filial f "
+             "JOIN endereco e ON e.id_endereco=f.id_endereco "
+             "WHERE f.id_filial='%s' LIMIT 1", escaped_id);
+    if (mysql_query(conn, query) != 0) {
+        fprintf(stderr, "Erro ao consultar CEP da filial: %s\n",
+                mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    result = mysql_store_result(conn);
+    row = result != NULL ? mysql_fetch_row(result) : NULL;
+    if (row == NULL) {
+        if (result != NULL) mysql_free_result(result);
+        mysql_close(conn);
+        return 0;
+    }
+    snprintf(cep, capacity, "%s", row[0] != NULL ? row[0] : "");
+    if (result != NULL) mysql_free_result(result);
+    mysql_close(conn);
+    return 1;
+}
+
 int select_all_branches(BranchItem *branches, int max_branches) {
     MYSQL *conn = connect_to_database();
     if (conn == NULL) return -1;

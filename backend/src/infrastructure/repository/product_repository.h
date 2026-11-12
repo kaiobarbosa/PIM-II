@@ -70,7 +70,11 @@ int create_dermo(char id_dermo[], char tipo_pele[], char volume[], char fator_pr
 int create_prod_dermo(char id_prod[], char id_dermo[]);
 
 int create_log_product(char id_log[], char acao[], char id_produto[],
-                       char id_funcionario[], char id_filial[]);
+                       char id_funcionario[], char id_filial[],
+                       const char *quantidade);
+int register_product_sale(const char *id_log, const char *id_produto,
+                          const char *id_funcionario, const char *id_filial,
+                          const char *quantidade);
 
 int get_produtos_vendidos_by_user_id(const char *id_user, ProdutoItem *produtos, int max_produtos);
 int get_product_details(const char *id_produto, ProductDetails *details);

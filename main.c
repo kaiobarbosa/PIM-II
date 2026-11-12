@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <locale.h>
 #include <unistd.h>
 #include "backend/config/database_connector.h"
 #include "backend/src/infrastructure/repository/query_executor.h"
@@ -7,7 +8,8 @@
 #include "frontend/screens/login_account.h"
 
 int main() {
-    
+    setlocale(LC_ALL, "");
+
     int first_use = 0;
     
     do{

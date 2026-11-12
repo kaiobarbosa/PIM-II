@@ -4,3 +4,4 @@ pharmaStock
 .vscode
 .env
 tests/
+documentation/application_logs.csv

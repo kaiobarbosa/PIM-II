@@ -1,72 +1,74 @@
 #include <ncurses.h>
+#include "frontend/components/unicode_input.h"
 #include <string.h>
 
 #include "backend/src/presentation/login_presentation.h"
 #include "frontend/screens/home_screen.h"
 
-#define MIN_SCREEN_HEIGHT 24
-#define MIN_SCREEN_WIDTH 70
-
-static int terminal_is_large_enough(void) {
-    int screen_height;
-    int screen_width;
-
-    getmaxyx(stdscr, screen_height, screen_width);
-    return screen_height >= MIN_SCREEN_HEIGHT &&
-           screen_width >= MIN_SCREEN_WIDTH;
-}
-
-static void show_resize_message(void) {
-    int screen_height;
-    int screen_width;
-    const char *message = "Aumente o terminal para continuar";
-    const char *required_size = "Tamanho minimo: 70 colunas x 24 linhas";
-
-    clear();
-    getmaxyx(stdscr, screen_height, screen_width);
-    box(stdscr, 0, 0);
-
-    attron(COLOR_PAIR(1) | A_BOLD);
-    if (screen_width > (int) strlen(message) + 2 && screen_height > 2) {
-        mvprintw(screen_height / 2 - 1,
-                 (screen_width - (int) strlen(message)) / 2,
-                 "%s", message);
-    }
-    attroff(COLOR_PAIR(1) | A_BOLD);
-
-    if (screen_width > (int) strlen(required_size) + 2 && screen_height > 3) {
-        mvprintw(screen_height / 2 + 1,
-                 (screen_width - (int) strlen(required_size)) / 2,
-                 "%s", required_size);
-    }
-
-    refresh();
-}
-
-static void read_field(int y, int x, int width, char *value, int value_size,
-                       int masked) {
-    int position = 0;
+static int read_field(int y, int x, int width, char *value, int value_size,
+                      int masked) {
+    size_t position = strlen(value);
+    int display_position = masked ? input_string_character_count(value) :
+                                    input_string_display_width(value);
     int character;
 
     curs_set(1);
     move(y, x);
+    if (masked) {
+        int index;
+        for (index = 0; index < display_position; index++) addch('*');
+    } else {
+        mvadd_utf8_clipped(y, x, value, width);
+    }
+    move(y, x + display_position);
 
-    while ((character = getch()) != '\n' && character != KEY_ENTER &&
-           character != 27) {
+    while (1) {
+        character = read_input_character();
+        if (character == KEY_RESIZE) {
+            curs_set(0);
+            return 1;
+        }
+        if (character == '\n' || character == KEY_ENTER || character == 27)
+            break;
         if ((character == KEY_BACKSPACE || character == 127 || character == 8) &&
             position > 0) {
-            position--;
-            mvaddch(y, x + position, ' ');
-            move(y, x + position);
-        } else if (character >= 32 && character <= 126 &&
-                   position < value_size - 1 && position < width) {
-            value[position++] = (char) character;
-            addch(masked ? '*' : character);
+            input_backspace(value);
+            position = strlen(value);
+            display_position = masked ?
+                               input_string_character_count(value) :
+                               input_string_display_width(value);
+            mvhline(y, x, ' ', width);
+            if (masked) {
+                int index;
+                for (index = 0; index < display_position; index++)
+                    mvaddch(y, x + index, '*');
+            } else {
+                mvadd_utf8_clipped(y, x, value, width);
+            }
+            move(y, x + display_position);
+        } else if (input_character_is_printable(character) &&
+                   position < (size_t)value_size - 1) {
+            size_t previous_position = position;
+            int character_width = input_character_display_width(character);
+            if (display_position + (masked ? 1 : character_width) > width)
+                continue;
+            if (input_character_append(value, (size_t)value_size, &position,
+                                       character)) {
+                if (masked) {
+                    addch('*');
+                    display_position++;
+                } else {
+                    addnstr(value + previous_position,
+                            (int)(position - previous_position));
+                    display_position += character_width;
+                }
+            }
         }
     }
 
     value[position] = '\0';
     curs_set(0);
+    return 0;
 }
 
 static void draw_login_form(int screen_width, int form_width, int form_left,
@@ -137,7 +139,8 @@ static int read_login_action(int screen_height, int screen_width) {
         attroff(A_DIM);
         refresh();
 
-        character = getch();
+        character = read_input_character();
+        if (character == KEY_RESIZE) return -1;
         if (character == KEY_LEFT || character == KEY_RIGHT ||
             character == '\t') {
             selected = !selected;
@@ -170,24 +173,23 @@ void login_account_screen() {
     init_pair(2, COLOR_GREEN, -1);
     init_pair(3, COLOR_RED, -1); 
 
-    while (!terminal_is_large_enough()) {
-        show_resize_message();
-        getch();
-    }
-
-    getmaxyx(stdscr, screen_height, screen_width);
-    form_width = 66;
-    form_left = (screen_width - form_width) / 2;
+    wait_for_minimum_terminal_size();
 
     while (1) {
+        wait_for_minimum_terminal_size();
+        getmaxyx(stdscr, screen_height, screen_width);
+        form_width = 66;
+        form_left = (screen_width - form_width) / 2;
         draw_login_form(screen_width, form_width, form_left, title);
 
-        read_field(9, form_left + 2, form_width - 4,
-                   user_email, sizeof(user_email), 0);
-        read_field(13, form_left + 2, form_width - 4,
-                   user_password, sizeof(user_password), 1);
+        if (read_field(9, form_left + 2, form_width - 4,
+                       user_email, sizeof(user_email), 0) ||
+            read_field(13, form_left + 2, form_width - 4,
+                       user_password, sizeof(user_password), 1))
+            continue;
 
         int action = read_login_action(screen_height, screen_width);
+        if (action < 0) continue;
 
         if (action == 1) { 
             break;
@@ -203,7 +205,7 @@ void login_account_screen() {
             mvprintw(screen_height / 2, (screen_width - 16) / 2, "Acesso Liberado!");
             attroff(COLOR_PAIR(2) | A_BOLD);
             refresh();
-            getch();
+            read_input_character();
             
             home_screen(session_user_id, session_user_profile); 
             
@@ -215,7 +217,7 @@ void login_account_screen() {
             mvprintw(screen_height - 5, (screen_width - 28) / 2, "E-mail ou senha incorretos.");
             attroff(COLOR_PAIR(3) | A_BOLD);
             refresh();
-            getch();
+            read_input_character();
 
             user_email[0] = '\0';
             user_password[0] = '\0';
