@@ -14,8 +14,6 @@
 #include "backend/src/presentation/login_presentation.h"
 #include "backend/src/presentation/profile_presentation.h"
 
-#define MIN_SCREEN_HEIGHT 24
-#define MIN_SCREEN_WIDTH 70
 #define MAX_EMPLOYEES 128
 #define MAX_BRANCHES 128
 #define MAX_FORM_FIELDS 8
@@ -473,17 +471,6 @@ int employee_screen(char user_id[7], char *user_profile) {
     int sidebar_focus = 2; // Começa apontando para "Funcionários"
     int is_in_sidebar = 1; // Controla se o teclado afeta o menu ou o conteúdo
 
-    getmaxyx(stdscr, screen_height, screen_width);
-    if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
-        draw_resize_message(screen_height, screen_width);
-        return APP_SCREEN_HOME;
-    }
-
-    sidebar_width = screen_width / 3;
-    hero_left = sidebar_width + 1;
-    hero_width = screen_width - hero_left - 1;
-    divider_y = 1 + (screen_height - 2) / 3;
-    
     keypad(stdscr, TRUE);
     clear_employee(&form_employee);
     if (branch_count < 0) branch_count = 0;
@@ -491,6 +478,13 @@ int employee_screen(char user_id[7], char *user_profile) {
     while (1) {
         FormField visible_fields[MAX_FORM_FIELDS];
         int visible_field_count = 0;
+
+        wait_for_minimum_terminal_size();
+        getmaxyx(stdscr, screen_height, screen_width);
+        sidebar_width = screen_width / 3;
+        hero_left = sidebar_width + 1;
+        hero_width = screen_width - hero_left - 1;
+        divider_y = 1 + (screen_height - 2) / 3;
 
         if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
             get_form_fields(form_employee.role, visible_fields,
@@ -518,6 +512,7 @@ int employee_screen(char user_id[7], char *user_profile) {
         refresh(); // Atualiza a tela após todas as sobreposições
 
         character = read_input_character();
+        if (character == KEY_RESIZE) continue;
 
         // --- INTERCEPTADOR DA SIDEBAR ---
         if (is_in_sidebar) {

@@ -12,8 +12,6 @@
 #include "frontend/screens/home_screen.h"
 #include "frontend/screens/profile_screen.h"
 
-#define MIN_PROFILE_HEIGHT 24
-#define MIN_PROFILE_WIDTH 70
 #define MAX_PROFILE_SALES 128
 #define MAX_PROFILE_BRANCHES 128
 #define PROFILE_HISTORY_PAGE 6
@@ -317,17 +315,15 @@ int profile_screen(char user_id[7], char *user_profile) {
     if (branch_count < 0) branch_count = 0;
     field_count = get_edit_fields(profile.profile, fields);
 
-    getmaxyx(stdscr, screen_height, screen_width);
-    if (screen_height < MIN_PROFILE_HEIGHT || screen_width < MIN_PROFILE_WIDTH) {
-        draw_resize_message(screen_height, screen_width);
-        return APP_SCREEN_HOME;
-    }
-    sidebar_width = screen_width * 2 / 5;
-    hero_left = sidebar_width + 1;
-    hero_width = screen_width - hero_left - 1;
     keypad(stdscr, TRUE);
 
     while (1) {
+        wait_for_minimum_terminal_size();
+        getmaxyx(stdscr, screen_height, screen_width);
+        sidebar_width = screen_width * 2 / 5;
+        hero_left = sidebar_width + 1;
+        hero_width = screen_width - hero_left - 1;
+
         erase();
         box(stdscr, 0, 0);
         draw_profile_sidebar(screen_height, sidebar_width,
@@ -386,6 +382,7 @@ int profile_screen(char user_id[7], char *user_profile) {
         refresh();
 
         character = read_input_character();
+        if (character == KEY_RESIZE) continue;
         if (mode == PROFILE_HISTORY && is_in_sidebar) {
             if (character == 27) return APP_SCREEN_HOME;
             if (character == KEY_UP || character == KEY_DOWN) {

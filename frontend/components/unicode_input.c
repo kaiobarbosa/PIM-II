@@ -5,10 +5,82 @@
 #include <limits.h>
 #include <ncurses.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
 
 #define UNICODE_INPUT_BASE 0x200000
+#define MIN_TERMINAL_ROWS 34
+#define MIN_TERMINAL_COLUMNS 80
+
+static int synchronize_terminal_size(void) {
+    struct winsize terminal_size;
+    int rows;
+    int columns;
+
+    getmaxyx(stdscr, rows, columns);
+    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &terminal_size) == 0 &&
+        terminal_size.ws_row > 0 && terminal_size.ws_col > 0 &&
+        (terminal_size.ws_row != rows || terminal_size.ws_col != columns)) {
+        resizeterm(terminal_size.ws_row, terminal_size.ws_col);
+        return 1;
+    }
+    return 0;
+}
+
+static void draw_terminal_resize_message(int rows, int columns) {
+    const char *message = "Aumente o terminal para continuar";
+    const char *required_size = "Tamanho minimo: 80 colunas x 34 linhas";
+
+    erase();
+    if (rows > 1 && columns > 1) box(stdscr, 0, 0);
+    if (columns > (int)strlen(message) + 2 && rows > 2) {
+        mvaddstr(rows / 2 - 1, (columns - (int)strlen(message)) / 2,
+                 message);
+    }
+    if (columns > (int)strlen(required_size) + 2 && rows > 3) {
+        mvaddstr(rows / 2 + 1, (columns - (int)strlen(required_size)) / 2,
+                 required_size);
+    }
+    refresh();
+}
+
+int wait_for_minimum_terminal_size(void) {
+    int rows;
+    int columns;
+    int previous_rows = -1;
+    int previous_columns = -1;
+    int waited = 0;
+
+    while (1) {
+        wint_t ignored_character;
+        int result;
+
+        synchronize_terminal_size();
+        getmaxyx(stdscr, rows, columns);
+        if (rows >= MIN_TERMINAL_ROWS &&
+            columns >= MIN_TERMINAL_COLUMNS) {
+            if (waited) {
+                clear();
+                refresh();
+            }
+            return waited;
+        }
+
+        if (rows != previous_rows || columns != previous_columns) {
+            draw_terminal_resize_message(rows, columns);
+            previous_rows = rows;
+            previous_columns = columns;
+        }
+        waited = 1;
+        wtimeout(stdscr, 200);
+        result = get_wch(&ignored_character);
+        wtimeout(stdscr, -1);
+        if (result == KEY_CODE_YES && ignored_character == KEY_RESIZE)
+            resizeterm(0, 0);
+    }
+}
 
 static wchar_t input_codepoint(int character) {
     if (character >= UNICODE_INPUT_BASE)
@@ -18,9 +90,35 @@ static wchar_t input_codepoint(int character) {
 
 int read_input_character(void) {
     wint_t character = 0;
-    int result = get_wch(&character);
+    int result;
 
-    if (result == ERR) return ERR;
+    if (wait_for_minimum_terminal_size()) return KEY_RESIZE;
+
+    while (1) {
+        wtimeout(stdscr, 200);
+        result = get_wch(&character);
+        wtimeout(stdscr, -1);
+
+        if (result == KEY_CODE_YES && character == KEY_RESIZE) {
+            synchronize_terminal_size();
+            wait_for_minimum_terminal_size();
+            return KEY_RESIZE;
+        }
+        if (result == ERR) {
+            if (synchronize_terminal_size()) {
+                wait_for_minimum_terminal_size();
+                return KEY_RESIZE;
+            }
+            if (wait_for_minimum_terminal_size()) return KEY_RESIZE;
+            continue;
+        }
+        if (synchronize_terminal_size()) {
+            wait_for_minimum_terminal_size();
+            return KEY_RESIZE;
+        }
+        break;
+    }
+
     if (result == KEY_CODE_YES) return (int)character;
     if (character > 0x7f)
         return UNICODE_INPUT_BASE + (int)character;

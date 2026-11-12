@@ -10,8 +10,6 @@
 #include "frontend/screens/home_screen.h"
 #include "frontend/screens/product_screen.h"
 
-#define MIN_SCREEN_HEIGHT 24
-#define MIN_SCREEN_WIDTH 70
 #define MAX_PRODUCTS 128
 #define MAX_BRANCHES 128
 #define MAX_PRODUCT_FIELDS 23
@@ -780,19 +778,17 @@ int product_screen(char user_id[7], char *user_profile) {
     product_count = refresh_product_list(products, product_items, branches,
                                          branch_count);
     if (product_count < 0) product_count = 0;
-    getmaxyx(stdscr, screen_height, screen_width);
-    if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
-        draw_resize_message(screen_height, screen_width);
-        return APP_SCREEN_HOME;
-    }
     if (!can_manage_products) menu_focus = 1;
-    sidebar_width = screen_width / 3;
-    hero_left = sidebar_width + 1;
-    hero_width = screen_width - hero_left - 1;
-    divider_y = screen_height / 2 - 1;
     keypad(stdscr, TRUE);
 
     while (1) {
+        wait_for_minimum_terminal_size();
+        getmaxyx(stdscr, screen_height, screen_width);
+        sidebar_width = screen_width / 3;
+        hero_left = sidebar_width + 1;
+        hero_width = screen_width - hero_left - 1;
+        divider_y = screen_height / 2 - 1;
+
         int result_indexes[MAX_PRODUCTS];
         int result_count = build_stock_results(products, product_count,
                                                applied_search,
@@ -869,6 +865,7 @@ int product_screen(char user_id[7], char *user_profile) {
         refresh();
 
         character = read_input_character();
+        if (character == KEY_RESIZE) continue;
         if (is_in_sidebar) {
             if (character == 27) return APP_SCREEN_HOME;
             if (character == KEY_UP) {

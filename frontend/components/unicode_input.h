@@ -4,6 +4,8 @@
 #include <stddef.h>
 
 int read_input_character(void);
+/* Aguarda ate que o terminal tenha pelo menos 80 colunas por 34 linhas. */
+int wait_for_minimum_terminal_size(void);
 int input_character_is_printable(int character);
 int input_character_display_width(int character);
 int input_string_display_width(const char *text);

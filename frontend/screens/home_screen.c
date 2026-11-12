@@ -13,31 +13,10 @@
 #include "frontend/screens/product_screen.h"
 #include "frontend/screens/profile_screen.h"
 
-#define MIN_SCREEN_HEIGHT 24
-#define MIN_SCREEN_WIDTH 70
 #define SEARCH_BUFFER_SIZE 256
 #define MAX_HOME_PRODUCTS 128
 #define MAX_HOME_BRANCHES 128
 #define HOME_PRODUCTS_PER_PAGE 6
-
-void draw_resize_message(int screen_height, int screen_width) {
-    const char *message = "Aumente o terminal para continuar";
-    const char *required_size = "Tamanho minimo: 70 colunas x 24 linhas";
-
-    erase();
-    box(stdscr, 0, 0);
-    if (screen_width > (int) strlen(message) + 2 && screen_height > 2) {
-        mvprintw(screen_height / 2 - 1,
-                 (screen_width - (int) strlen(message)) / 2, "%s", message);
-    }
-    if (screen_width > (int) strlen(required_size) + 2 && screen_height > 3) {
-        mvprintw(screen_height / 2 + 1,
-                 (screen_width - (int) strlen(required_size)) / 2,
-                 "%s", required_size);
-    }
-    refresh();
-    read_input_character();
-}
 
 static void draw_search_section(int hero_left, int hero_width, int divider_y,
                                 int focus, int editing, int confirmed,
@@ -307,19 +286,15 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
         user_id, recent_sales, MAX_HOME_PRODUCTS);
     if (recent_sales_count < 0) recent_sales_count = 0;
 
-    getmaxyx(stdscr, screen_height, screen_width);
-    if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
-        draw_resize_message(screen_height, screen_width);
-        return APP_SCREEN_EXIT;
-    }
-
-    sidebar_width = screen_width / 3;
-    hero_left = sidebar_width + 1;
-    hero_width = screen_width - hero_left - 1;
-    divider_y = 1 + (screen_height - 2) / 3;
-
     keypad(stdscr, TRUE);
     while (1) {
+        wait_for_minimum_terminal_size();
+        getmaxyx(stdscr, screen_height, screen_width);
+        sidebar_width = screen_width / 3;
+        hero_left = sidebar_width + 1;
+        hero_width = screen_width - hero_left - 1;
+        divider_y = 1 + (screen_height - 2) / 3;
+
         ProdutoItem *visible_products = search_confirmed ? products :
                                         recent_sales;
         int visible_product_count = search_confirmed ? product_count :
@@ -403,6 +378,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
         refresh();
 
         character = read_input_character();
+        if (character == KEY_RESIZE) continue;
         if (branch_info_mode) {
             if (character == 27 || character == '\n' ||
                 character == KEY_ENTER) {

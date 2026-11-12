@@ -8,8 +8,6 @@
 #include "frontend/screens/home_screen.h"
 #include "backend/src/presentation/branch_presentation.h"
 
-#define MIN_SCREEN_HEIGHT 24
-#define MIN_SCREEN_WIDTH 70
 #define MAX_BRANCHES 10
 #define MAX_BRANCH_FIELDS 8
 
@@ -346,16 +344,6 @@ int branch_screen(char user_id[7], char *user_profile) {
         branches[index].active = 1;
     }
 
-    getmaxyx(stdscr, screen_height, screen_width);
-    if (screen_height < MIN_SCREEN_HEIGHT || screen_width < MIN_SCREEN_WIDTH) {
-        draw_resize_message(screen_height, screen_width);
-        return APP_SCREEN_HOME;
-    }
-
-    sidebar_width = screen_width / 3;
-    hero_left = sidebar_width + 1;
-    hero_width = screen_width - hero_left - 1;
-    divider_y = 1 + (screen_height - 2) / 3;
     keypad(stdscr, TRUE);
     clear_branch(&form_branch);
     if (!director_mode && branch_count > 0) branch_focus = 1;
@@ -364,6 +352,13 @@ int branch_screen(char user_id[7], char *user_profile) {
         BranchField fields[MAX_BRANCH_FIELDS];
         int field_count = 0;
         int character_is_confirm;
+
+        wait_for_minimum_terminal_size();
+        getmaxyx(stdscr, screen_height, screen_width);
+        sidebar_width = screen_width / 3;
+        hero_left = sidebar_width + 1;
+        hero_width = screen_width - hero_left - 1;
+        divider_y = 1 + (screen_height - 2) / 3;
 
         if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
             get_branch_fields(screen == SCREEN_EDIT_FORM, fields, &field_count);
@@ -377,6 +372,7 @@ int branch_screen(char user_id[7], char *user_profile) {
                            status_is_error, user_profile);
 
         character = read_input_character();
+        if (character == KEY_RESIZE) continue;
         character_is_confirm = character == '\n' || character == KEY_ENTER;
 
         if (is_in_sidebar) {
