@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include "frontend/components/unicode_input.h"
 #include <string.h>
 
 #include "backend/src/presentation/login_presentation.h"
@@ -45,23 +46,48 @@ static void show_resize_message(void) {
 
 static void read_field(int y, int x, int width, char *value, int value_size,
                        int masked) {
-    int position = 0;
+    size_t position = 0;
+    int display_position = 0;
     int character;
 
     curs_set(1);
     move(y, x);
 
-    while ((character = getch()) != '\n' && character != KEY_ENTER &&
-           character != 27) {
+    while ((character = read_input_character()) != '\n' &&
+           character != KEY_ENTER && character != 27) {
         if ((character == KEY_BACKSPACE || character == 127 || character == 8) &&
             position > 0) {
-            position--;
-            mvaddch(y, x + position, ' ');
-            move(y, x + position);
-        } else if (character >= 32 && character <= 126 &&
-                   position < value_size - 1 && position < width) {
-            value[position++] = (char) character;
-            addch(masked ? '*' : character);
+            input_backspace(value);
+            position = strlen(value);
+            display_position = masked ?
+                               input_string_character_count(value) :
+                               input_string_display_width(value);
+            mvhline(y, x, ' ', width);
+            if (masked) {
+                int index;
+                for (index = 0; index < display_position; index++)
+                    mvaddch(y, x + index, '*');
+            } else {
+                mvadd_utf8_clipped(y, x, value, width);
+            }
+            move(y, x + display_position);
+        } else if (input_character_is_printable(character) &&
+                   position < (size_t)value_size - 1) {
+            size_t previous_position = position;
+            int character_width = input_character_display_width(character);
+            if (display_position + (masked ? 1 : character_width) > width)
+                continue;
+            if (input_character_append(value, (size_t)value_size, &position,
+                                       character)) {
+                if (masked) {
+                    addch('*');
+                    display_position++;
+                } else {
+                    addnstr(value + previous_position,
+                            (int)(position - previous_position));
+                    display_position += character_width;
+                }
+            }
         }
     }
 
@@ -137,7 +163,7 @@ static int read_login_action(int screen_height, int screen_width) {
         attroff(A_DIM);
         refresh();
 
-        character = getch();
+        character = read_input_character();
         if (character == KEY_LEFT || character == KEY_RIGHT ||
             character == '\t') {
             selected = !selected;
@@ -172,7 +198,7 @@ void login_account_screen() {
 
     while (!terminal_is_large_enough()) {
         show_resize_message();
-        getch();
+        read_input_character();
     }
 
     getmaxyx(stdscr, screen_height, screen_width);
@@ -203,7 +229,7 @@ void login_account_screen() {
             mvprintw(screen_height / 2, (screen_width - 16) / 2, "Acesso Liberado!");
             attroff(COLOR_PAIR(2) | A_BOLD);
             refresh();
-            getch();
+            read_input_character();
             
             home_screen(session_user_id, session_user_profile); 
             
@@ -215,7 +241,7 @@ void login_account_screen() {
             mvprintw(screen_height - 5, (screen_width - 28) / 2, "E-mail ou senha incorretos.");
             attroff(COLOR_PAIR(3) | A_BOLD);
             refresh();
-            getch();
+            read_input_character();
 
             user_email[0] = '\0';
             user_password[0] = '\0';

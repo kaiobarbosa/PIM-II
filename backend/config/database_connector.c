@@ -27,5 +27,12 @@ MYSQL* connect_to_database() {
         mysql_close(conn);
         return NULL;
     }
+
+    if (mysql_set_character_set(conn, "utf8mb4") != 0) {
+        fprintf(stderr, "Erro ao configurar conexão UTF-8: %s\n",
+                mysql_error(conn));
+        mysql_close(conn);
+        return NULL;
+    }
     return conn;
 }

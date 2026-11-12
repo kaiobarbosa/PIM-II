@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include "frontend/components/unicode_input.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,26 +112,30 @@ static void draw_profile_history(int screen_height, int hero_left,
                                  int branch_count, int scroll) {
     int table_x = hero_left + 3;
     int table_width = hero_width - 6;
-    int date_width = 12;
-    int branch_width = 10;
-    int product_width = table_width - date_width - branch_width - 2;
+    int date_width = 10;
+    int branch_width = 8;
+    int quantity_width = 5;
+    int product_width = table_width - date_width - branch_width -
+                        quantity_width - 3;
     int branch_x = table_x + date_width + 1;
-    int product_x = branch_x + branch_width + 1;
+    int quantity_x = branch_x + branch_width + 1;
+    int product_x = quantity_x + quantity_width + 1;
     int row;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, table_x, "HISTORICO DE VENDAS", table_width);
+    mvadd_utf8_clipped(2, table_x, "HISTORICO DE VENDAS", table_width);
     attroff(COLOR_PAIR(1) | A_BOLD);
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(5, table_x, "DATA", date_width);
-    mvaddnstr(5, branch_x, "FILIAL", branch_width);
-    mvaddnstr(5, product_x, "PRODUTO", product_width);
+    mvadd_utf8_clipped(5, table_x, "DATA", date_width);
+    mvadd_utf8_clipped(5, branch_x, "FILIAL", branch_width);
+    mvadd_utf8_clipped(5, quantity_x, "QTD", quantity_width);
+    mvadd_utf8_clipped(5, product_x, "PRODUTO", product_width);
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvhline(6, table_x, ACS_HLINE, table_width);
 
     if (sales_count == 0) {
-        mvaddnstr(8, table_x, "Nenhuma venda registrada.", table_width);
+        mvadd_utf8_clipped(8, table_x, "Nenhuma venda registrada.", table_width);
         return;
     }
 
@@ -147,11 +152,12 @@ static void draw_profile_history(int screen_height, int hero_left,
                 break;
             }
         }
-        mvaddnstr(7 + row, table_x,
+        mvadd_utf8_clipped(7 + row, table_x,
                   sale->data_venda[0] != '\0' ? sale->data_venda : "--",
                   date_width);
-        mvaddnstr(7 + row, branch_x, branch_name, branch_width);
-        mvaddnstr(7 + row, product_x, sale->nome, product_width);
+        mvadd_utf8_clipped(7 + row, branch_x, branch_name, branch_width);
+        mvadd_utf8_clipped(7 + row, quantity_x, sale->quantidade, quantity_width);
+        mvadd_utf8_clipped(7 + row, product_x, sale->nome, product_width);
     }
 
     if (sales_count > PROFILE_HISTORY_PAGE) {
@@ -160,7 +166,7 @@ static void draw_profile_history(int screen_height, int hero_left,
                    scroll + PROFILE_HISTORY_PAGE : sales_count;
         snprintf(page, sizeof(page), "%d-%d de %d", scroll + 1, last,
                  sales_count);
-        mvaddnstr(screen_height - 3, table_x, page, table_width);
+        mvadd_utf8_clipped(screen_height - 3, table_x, page, table_width);
     }
 }
 
@@ -177,7 +183,7 @@ static void draw_profile_edit(int screen_height, int hero_left, int hero_width,
     int button_y = screen_height - 5;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, hero_left + 3, "EDITAR INFORMACOES PESSOAIS",
+    mvadd_utf8_clipped(2, hero_left + 3, "EDITAR INFORMACOES PESSOAIS",
               hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
 
@@ -186,7 +192,7 @@ static void draw_profile_edit(int screen_height, int hero_left, int hero_width,
         size_t capacity;
         char *value = field_value(edit_info, fields[index], new_password,
                                   confirm_password, &capacity);
-        mvaddnstr(y, hero_left + 3, field_label(fields[index]), 19);
+        mvadd_utf8_clipped(y, hero_left + 3, field_label(fields[index]), 19);
         if (focus == index) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         mvaddch(y, field_x, '[');
         mvhline(y, field_x + 1, ' ', field_width - 2);
@@ -194,15 +200,15 @@ static void draw_profile_edit(int screen_height, int hero_left, int hero_width,
         if ((fields[index] == EDIT_NEW_PASSWORD ||
              fields[index] == EDIT_CONFIRM_PASSWORD) && !password_visible) {
             char masked[128];
-            size_t length = strlen(value);
-            memset(masked, '*', length);
-            masked[length] = '\0';
-            mvaddnstr(y, field_x + 2, masked, field_width - 4);
+            size_t mask_length = (size_t)input_string_character_count(value);
+            memset(masked, '*', mask_length);
+            masked[mask_length] = '\0';
+            mvadd_utf8_clipped(y, field_x + 2, masked, field_width - 4);
         } else {
-            mvaddnstr(y, field_x + 2, value, field_width - 4);
+            mvadd_utf8_clipped(y, field_x + 2, value, field_width - 4);
         }
         if (focus == index && editing) {
-            int cursor_x = field_x + 2 + (int)strlen(value);
+            int cursor_x = field_x + 2 + input_string_display_width(value);
             if (cursor_x > field_x + field_width - 2)
                 cursor_x = field_x + field_width - 2;
             move(y, cursor_x);
@@ -212,15 +218,15 @@ static void draw_profile_edit(int screen_height, int hero_left, int hero_width,
     }
 
     if (focus == field_count) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(button_y, hero_left + 4, "[ CANCELAR ]", 14);
+    mvadd_utf8_clipped(button_y, hero_left + 4, "[ CANCELAR ]", 14);
     if (focus == field_count) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     if (focus == field_count + 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(button_y, hero_left + 23, "[ CONFIRMAR ]", 16);
+    mvadd_utf8_clipped(button_y, hero_left + 23, "[ CONFIRMAR ]", 16);
     if (focus == field_count + 1) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
 
     if (status[0] != '\0') {
         attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
-        mvaddnstr(screen_height - 3, hero_left + 3, status, hero_width - 6);
+        mvadd_utf8_clipped(screen_height - 3, hero_left + 3, status, hero_width - 6);
         attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
     }
 }
@@ -236,19 +242,19 @@ static void draw_profile_confirmation(int screen_height, int hero_left,
     int button_y = screen_height - 5;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, hero_left + 3, "CONFIRMAR ALTERACAO DE SENHA",
+    mvadd_utf8_clipped(2, hero_left + 3, "CONFIRMAR ALTERACAO DE SENHA",
               hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
 
-    mvaddnstr(5, hero_left + 3,
+    mvadd_utf8_clipped(5, hero_left + 3,
               "Enviamos um codigo de 6 caracteres para o e-mail cadastrado.",
               hero_width - 6);
-    mvaddnstr(7, hero_left + 3, "Codigo", 19);
+    mvadd_utf8_clipped(7, hero_left + 3, "Codigo", 19);
     if (focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     mvaddch(7, field_x, '[');
     mvhline(7, field_x + 1, ' ', field_width - 2);
     mvaddch(7, field_x + field_width - 1, ']');
-    mvaddnstr(7, field_x + 2, verification_code, field_width - 4);
+    mvadd_utf8_clipped(7, field_x + 2, verification_code, field_width - 4);
     if (focus == 0 && editing) {
         int cursor_x = field_x + 2 + (int)strlen(verification_code);
         if (cursor_x > field_x + field_width - 2)
@@ -258,15 +264,15 @@ static void draw_profile_confirmation(int screen_height, int hero_left,
     if (focus == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
 
     if (focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(button_y, hero_left + 4, "[ VOLTAR ]", 12);
+    mvadd_utf8_clipped(button_y, hero_left + 4, "[ VOLTAR ]", 12);
     if (focus == 1) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     if (focus == 2) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(button_y, hero_left + 23, "[ CONFIRMAR ]", 16);
+    mvadd_utf8_clipped(button_y, hero_left + 23, "[ CONFIRMAR ]", 16);
     if (focus == 2) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
 
     if (status[0] != '\0') {
         attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
-        mvaddnstr(screen_height - 3, hero_left + 3, status, hero_width - 6);
+        mvadd_utf8_clipped(screen_height - 3, hero_left + 3, status, hero_width - 6);
         attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
     }
 }
@@ -338,7 +344,7 @@ int profile_screen(char user_id[7], char *user_profile) {
                                  history_scroll);
             if (status_message[0] != '\0') {
                 attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
-                mvaddnstr(screen_height - 3, hero_left + 3, status_message,
+                mvadd_utf8_clipped(screen_height - 3, hero_left + 3, status_message,
                           hero_width - 6);
                 attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
             }
@@ -355,23 +361,23 @@ int profile_screen(char user_id[7], char *user_profile) {
 
         attron(A_DIM);
         if (mode == PROFILE_CONFIRMATION && editing) {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Digite o codigo | Enter: concluir campo | Esc: voltar",
                       screen_width - 4);
         } else if (mode == PROFILE_CONFIRMATION) {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Setas: navegar | Enter: editar/selecionar | Esc: voltar",
                       screen_width - 4);
         } else if (mode == PROFILE_EDIT && editing) {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Digite o campo | Enter: concluir campo | Esc: parar",
                       screen_width - 4);
         } else if (mode == PROFILE_EDIT) {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Setas: navegar | Enter: editar/selecionar | Esc: cancelar",
                       screen_width - 4);
         } else {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Setas: navegar | PgUp/PgDn: historico | Enter: selecionar | Esc: voltar",
                       screen_width - 4);
         }
@@ -379,7 +385,7 @@ int profile_screen(char user_id[7], char *user_profile) {
         curs_set(editing ? 1 : 0);
         refresh();
 
-        character = getch();
+        character = read_input_character();
         if (mode == PROFILE_HISTORY && is_in_sidebar) {
             if (character == 27) return APP_SCREEN_HOME;
             if (character == KEY_UP || character == KEY_DOWN) {
@@ -484,13 +490,11 @@ int profile_screen(char user_id[7], char *user_profile) {
                     editing = 0;
                 } else if (character == KEY_BACKSPACE || character == 127 ||
                            character == 8) {
+                    input_backspace(value);
+                } else if (input_character_is_printable(character)) {
                     size_t length = strlen(value);
-                    if (length > 0) value[length - 1] = '\0';
-                } else if (character >= 32 && character <= 255 &&
-                           strlen(value) < capacity - 1) {
-                    size_t length = strlen(value);
-                    value[length] = (char)character;
-                    value[length + 1] = '\0';
+                    input_character_append(value, capacity, &length,
+                                           character);
                 }
             } else if (character == 27) {
                 mode = PROFILE_HISTORY;

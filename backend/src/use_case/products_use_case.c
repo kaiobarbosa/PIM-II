@@ -187,7 +187,7 @@ int products_use_case(char nome[], char marca[], char descricao[],
         char id_log[7];
         generate_id(id_log);
         if (create_log_product(id_log, "Criação", generated_id,
-                               id_funcionario, filial) == -1) {
+                               id_funcionario, filial, NULL) == -1) {
             fprintf(stderr, "Erro ao criar log de produto.\n");
             return -1;
         }
@@ -340,16 +340,11 @@ int baixa_produto_estoque_use_case(char id_produto[], char quantidade[],
         return -1;
     }
 
-    if (baixa_produto_estoque(id_produto, quantidade, filial) == -1) {
-        fprintf(stderr, "Erro: Nao foi possivel realizar a baixa do produto.\n");
-        return -1;
-    }
-
     char id_log[7];
     generate_id(id_log);
-    if (create_log_product(id_log, "Venda", id_produto, id_funcionario,
-                           filial) == -1) {
-        fprintf(stderr, "Erro ao criar log da venda do produto.\n");
+    if (register_product_sale(id_log, id_produto, id_funcionario, filial,
+                              quantidade) == -1) {
+        fprintf(stderr, "Erro ao realizar e registrar a venda do produto.\n");
         return -1;
     }
 

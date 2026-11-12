@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include "frontend/components/unicode_input.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -35,7 +36,7 @@ void draw_resize_message(int screen_height, int screen_width) {
                  "%s", required_size);
     }
     refresh();
-    getch();
+    read_input_character();
 }
 
 static void draw_search_section(int hero_left, int hero_width, int divider_y,
@@ -46,11 +47,11 @@ static void draw_search_section(int hero_left, int hero_width, int divider_y,
     int input_left = hero_left + 4;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, hero_left + 3, heading, hero_width - 6);
+    mvadd_utf8_clipped(2, hero_left + 3, heading, hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
 
     attron(A_DIM);
-    mvaddnstr(4, hero_left + 3, confirmed ? "Busca confirmada" :
+    mvadd_utf8_clipped(4, hero_left + 3, confirmed ? "Busca confirmada" :
               "Consulte um produto pelo nome", hero_width - 6);
     attroff(A_DIM);
 
@@ -61,15 +62,15 @@ static void draw_search_section(int hero_left, int hero_width, int divider_y,
         mvhline(6, input_left + 1, ACS_HLINE, input_width - 2);
         mvaddch(6, input_left + input_width - 1, ']');
         if (query[0] != '\0') {
-            mvaddnstr(6, input_left + 2, query, input_width - 4);
+            mvadd_utf8_clipped(6, input_left + 2, query, input_width - 4);
         } else if (!editing) {
-            mvaddnstr(6, input_left + 2, "Digite o nome do produto...",
+            mvadd_utf8_clipped(6, input_left + 2, "Digite o nome do produto...",
                       input_width - 4);
         }
         attroff(COLOR_PAIR(focus == 5 ? 2 : 1) |
                 (focus == 5 ? A_BOLD | A_REVERSE : 0));
         if (editing) {
-            int cursor_x = input_left + 2 + (int) strlen(query);
+            int cursor_x = input_left + 2 + input_string_display_width(query);
             if (cursor_x > input_left + input_width - 2) {
                 cursor_x = input_left + input_width - 2;
             }
@@ -98,23 +99,23 @@ static void draw_search_results(int screen_height, int hero_left,
     int row;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(10, table_x, heading, table_width);
+    mvadd_utf8_clipped(10, table_x, heading, table_width);
     attroff(COLOR_PAIR(1) | A_BOLD);
 
     if (search_error) {
-        mvaddnstr(12, table_x, "Falha ao pesquisar produtos.", table_width);
+        mvadd_utf8_clipped(12, table_x, "Falha ao pesquisar produtos.", table_width);
         return;
     }
     if (product_count == 0) {
-        mvaddnstr(12, table_x, empty_message, table_width);
+        mvadd_utf8_clipped(12, table_x, empty_message, table_width);
         return;
     }
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(11, table_x, "NOME", name_width);
-    mvaddnstr(11, quantity_x, "QTD", quantity_width);
-    mvaddnstr(11, price_x, "PRECO", price_width);
-    if (branch_width > 0) mvaddnstr(11, branch_x, "FILIAL", branch_width);
+    mvadd_utf8_clipped(11, table_x, "NOME", name_width);
+    mvadd_utf8_clipped(11, quantity_x, "QTD", quantity_width);
+    mvadd_utf8_clipped(11, price_x, "PRECO", price_width);
+    if (branch_width > 0) mvadd_utf8_clipped(11, branch_x, "FILIAL", branch_width);
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvhline(12, table_x, ACS_HLINE, table_width);
 
@@ -136,11 +137,11 @@ static void draw_search_results(int screen_height, int hero_left,
             attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
             mvhline(13 + row, table_x - 1, ' ', table_width + 2);
         }
-        mvaddnstr(13 + row, table_x, product->nome, name_width);
-        mvaddnstr(13 + row, quantity_x, product->quantidade, quantity_width);
-        mvaddnstr(13 + row, price_x, product->preco, price_width);
+        mvadd_utf8_clipped(13 + row, table_x, product->nome, name_width);
+        mvadd_utf8_clipped(13 + row, quantity_x, product->quantidade, quantity_width);
+        mvadd_utf8_clipped(13 + row, price_x, product->preco, price_width);
         if (branch_width > 0)
-            mvaddnstr(13 + row, branch_x, branch_label, branch_width);
+            mvadd_utf8_clipped(13 + row, branch_x, branch_label, branch_width);
         if (selected) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
 
@@ -150,7 +151,7 @@ static void draw_search_results(int screen_height, int hero_left,
                    scroll + HOME_PRODUCTS_PER_PAGE : product_count;
         snprintf(page_status, sizeof(page_status), "%d-%d de %d",
                  scroll + 1, last, product_count);
-        mvaddnstr(screen_height - 3, table_x, page_status, table_width);
+        mvadd_utf8_clipped(screen_height - 3, table_x, page_status, table_width);
     }
 }
 
@@ -159,12 +160,12 @@ static void draw_product_actions(int hero_left, int hero_width,
     static const char *actions[] = {"Venda", "Ver endereco da filial"};
     int index;
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(10, hero_left + 3, product->nome, hero_width - 6);
-    mvaddnstr(12, hero_left + 3, "O que deseja fazer?", hero_width - 6);
+    mvadd_utf8_clipped(10, hero_left + 3, product->nome, hero_width - 6);
+    mvadd_utf8_clipped(12, hero_left + 3, "O que deseja fazer?", hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
     for (index = 0; index < 2; index++) {
         if (focus == index) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-        mvaddnstr(14 + index * 2, hero_left + 5, actions[index],
+        mvadd_utf8_clipped(14 + index * 2, hero_left + 5, actions[index],
                   hero_width - 10);
         if (focus == index) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
@@ -175,24 +176,24 @@ static void draw_branch_address(int hero_left, int hero_width,
                                 const BranchItem *branch) {
     char line[512];
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(10, hero_left + 3, "ENDERECO DA FILIAL", hero_width - 6);
+    mvadd_utf8_clipped(10, hero_left + 3, "ENDERECO DA FILIAL", hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
     snprintf(line, sizeof(line), "Produto: %s", product->nome);
-    mvaddnstr(12, hero_left + 3, line, hero_width - 6);
+    mvadd_utf8_clipped(12, hero_left + 3, line, hero_width - 6);
     snprintf(line, sizeof(line), "CEP: %s", branch->cep);
-    mvaddnstr(14, hero_left + 3, line, hero_width - 6);
+    mvadd_utf8_clipped(14, hero_left + 3, line, hero_width - 6);
     snprintf(line, sizeof(line), "Logradouro: %s", branch->logradouro);
-    mvaddnstr(15, hero_left + 3, line, hero_width - 6);
+    mvadd_utf8_clipped(15, hero_left + 3, line, hero_width - 6);
     snprintf(line, sizeof(line), "Numero: %s", branch->numero);
-    mvaddnstr(16, hero_left + 3, line, hero_width - 6);
+    mvadd_utf8_clipped(16, hero_left + 3, line, hero_width - 6);
     snprintf(line, sizeof(line), "Complemento: %s",
              branch->complemento[0] != '\0' ? branch->complemento : "-");
-    mvaddnstr(17, hero_left + 3, line, hero_width - 6);
+    mvadd_utf8_clipped(17, hero_left + 3, line, hero_width - 6);
     snprintf(line, sizeof(line), "Bairro: %s", branch->bairro);
-    mvaddnstr(18, hero_left + 3, line, hero_width - 6);
+    mvadd_utf8_clipped(18, hero_left + 3, line, hero_width - 6);
     snprintf(line, sizeof(line), "Cidade/Estado: %s/%s",
              branch->cidade, branch->estado);
-    mvaddnstr(19, hero_left + 3, line, hero_width - 6);
+    mvadd_utf8_clipped(19, hero_left + 3, line, hero_width - 6);
 }
 
 static const BranchItem *find_product_branch(const ProdutoItem *product,
@@ -211,27 +212,27 @@ static void draw_sale(int screen_height, int hero_left, int hero_width,
                       const char *crf, int crf_required, int input_focus,
                       const char *status_message, int status_is_error) {
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(10, hero_left + 3, "REGISTRAR VENDA", hero_width - 6);
+    mvadd_utf8_clipped(10, hero_left + 3, "REGISTRAR VENDA", hero_width - 6);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(12, hero_left + 3, product->nome, hero_width - 6);
-    mvaddnstr(14, hero_left + 3, "Quantidade a vender:", hero_width - 6);
+    mvadd_utf8_clipped(12, hero_left + 3, product->nome, hero_width - 6);
+    mvadd_utf8_clipped(14, hero_left + 3, "Quantidade a vender:", hero_width - 6);
     if (input_focus == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     mvaddch(16, hero_left + 3, '[');
     mvhline(16, hero_left + 4, ' ', 14);
     mvaddch(16, hero_left + 18, ']');
-    mvaddnstr(16, hero_left + 5, quantity, 12);
+    mvadd_utf8_clipped(16, hero_left + 5, quantity, 12);
     if (input_focus == 0) {
         move(16, hero_left + 5 + (int)strlen(quantity));
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
     if (crf_required) {
-        mvaddnstr(18, hero_left + 3, "CRF do farmaceutico da filial:",
+        mvadd_utf8_clipped(18, hero_left + 3, "CRF do farmaceutico da filial:",
                   hero_width - 6);
         if (input_focus == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         mvaddch(20, hero_left + 3, '[');
         mvhline(20, hero_left + 4, ' ', 18);
         mvaddch(20, hero_left + 22, ']');
-        mvaddnstr(20, hero_left + 5, crf, 16);
+        mvadd_utf8_clipped(20, hero_left + 5, crf, 16);
         if (input_focus == 1) {
             move(20, hero_left + 5 + (int)strlen(crf));
             attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
@@ -239,7 +240,7 @@ static void draw_sale(int screen_height, int hero_left, int hero_width,
     }
     if (status_message[0] != '\0') {
         attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
-        mvaddnstr(screen_height - 3, hero_left + 3, status_message,
+        mvadd_utf8_clipped(screen_height - 3, hero_left + 3, status_message,
                   hero_width - 6);
         attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
     }
@@ -340,7 +341,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                 draw_branch_address(hero_left, hero_width,
                                     &visible_products[selected_result], branch);
             } else {
-                mvaddnstr(12, hero_left + 3,
+                mvadd_utf8_clipped(12, hero_left + 3,
                           "Nao foi possivel localizar o endereco da filial.",
                           hero_width - 6);
             }
@@ -365,7 +366,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
         }
         if (status_message[0] != '\0' && !sale_mode) {
             attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
-            mvaddnstr(screen_height - 3, hero_left + 3, status_message,
+            mvadd_utf8_clipped(screen_height - 3, hero_left + 3, status_message,
                       hero_width - 6);
             attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
         }
@@ -373,27 +374,27 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
         attron(A_DIM);
         if (sale_mode) {
             if (sale_crf_required)
-                mvaddnstr(screen_height - 2, 2,
+                mvadd_utf8_clipped(screen_height - 2, 2,
                           "Tab/Setas: alternar quantidade e CRF | Enter: confirmar | Esc: voltar",
                           screen_width - 4);
             else
-                mvaddnstr(screen_height - 2, 2,
+                mvadd_utf8_clipped(screen_height - 2, 2,
                           "Digite a quantidade | Enter: confirmar venda | Esc: voltar",
                           screen_width - 4);
         } else if (branch_info_mode) {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Enter/Esc: voltar as opcoes do produto",
                       screen_width - 4);
         } else if (action_menu_open) {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Setas: escolher acao | Enter: selecionar | Esc: voltar",
                       screen_width - 4);
         } else if (editing_search) {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Digite o produto  |  Enter: confirmar  |  Esc: cancelar",
                       screen_width - 4);
         } else {
-            mvaddnstr(screen_height - 2, 2,
+            mvadd_utf8_clipped(screen_height - 2, 2,
                       "Setas: mover | PgUp/PgDn: resultados | Enter: selecionar | Esc: sair",
                       screen_width - 4);
         }
@@ -401,7 +402,7 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
         curs_set(editing_search || sale_mode ? 1 : 0);
         refresh();
 
-        character = getch();
+        character = read_input_character();
         if (branch_info_mode) {
             if (character == 27 || character == '\n' ||
                 character == KEY_ENTER) {
@@ -551,13 +552,13 @@ static AppScreen home_screen_view(char user_id[7], char *user_profile) {
                 selected_result = -1;
             } else if (character == KEY_BACKSPACE || character == 127 ||
                        character == 8) {
-                if (search_length > 0) {
-                    search_query[--search_length] = '\0';
-                }
-            } else if (character >= 32 && character <= 255 &&
-                       search_length < SEARCH_BUFFER_SIZE - 1) {
-                search_query[search_length++] = (char) character;
-                search_query[search_length] = '\0';
+                input_backspace(search_query);
+                search_length = (int)strlen(search_query);
+            } else if (input_character_is_printable(character)) {
+                size_t length = (size_t)search_length;
+                input_character_append(search_query, sizeof(search_query),
+                                       &length, character);
+                search_length = (int)length;
             }
         } else if (focus == 6 && visible_product_count > 0 &&
                    (character == KEY_UP || character == KEY_DOWN)) {

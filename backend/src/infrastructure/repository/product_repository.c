@@ -285,8 +285,45 @@ int create_product(const char *id, const char *nome, const char *marca, const ch
         return -1;
     }
 
-    char query[512];
-    snprintf(query, sizeof(query),  "INSERT INTO produto (id_produto, nome_produto, marca_produto, descricao_produto, preco, codigo_de_barras, quantidade_produto, id_filial) values ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')", id, nome, marca, descricao, preco, cod_barras, quantidade, filial);
+    if (id == NULL || nome == NULL || marca == NULL || descricao == NULL ||
+        preco == NULL || cod_barras == NULL || quantidade == NULL ||
+        filial == NULL || strlen(id) != 6 || strlen(filial) != 6 ||
+        strlen(nome) > 255 || strlen(marca) > 255 ||
+        strlen(descricao) > 255 || strlen(preco) > 255 ||
+        strlen(cod_barras) > 255 || strlen(quantidade) > 255) {
+        mysql_close(conn);
+        return -1;
+    }
+
+    char escaped_id[13];
+    char escaped_name[511];
+    char escaped_brand[511];
+    char escaped_description[511];
+    char escaped_price[511];
+    char escaped_barcode[511];
+    char escaped_quantity[511];
+    char escaped_branch[13];
+    char query[4096];
+
+#define ESCAPE_PRODUCT_FIELD(output, input) \
+    mysql_real_escape_string(conn, output, input, (unsigned long)strlen(input))
+    ESCAPE_PRODUCT_FIELD(escaped_id, id);
+    ESCAPE_PRODUCT_FIELD(escaped_name, nome);
+    ESCAPE_PRODUCT_FIELD(escaped_brand, marca);
+    ESCAPE_PRODUCT_FIELD(escaped_description, descricao);
+    ESCAPE_PRODUCT_FIELD(escaped_price, preco);
+    ESCAPE_PRODUCT_FIELD(escaped_barcode, cod_barras);
+    ESCAPE_PRODUCT_FIELD(escaped_quantity, quantidade);
+    ESCAPE_PRODUCT_FIELD(escaped_branch, filial);
+#undef ESCAPE_PRODUCT_FIELD
+
+    snprintf(query, sizeof(query),
+             "INSERT INTO produto (id_produto, nome_produto, marca_produto, "
+             "descricao_produto, preco, codigo_de_barras, "
+             "quantidade_produto, id_filial) "
+             "VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
+             escaped_id, escaped_name, escaped_brand, escaped_description,
+             escaped_price, escaped_barcode, escaped_quantity, escaped_branch);
 
     if (mysql_query(conn, query)) {
         fprintf(stderr, "Erro ao criar produto: %s\n", mysql_error(conn));
@@ -428,21 +465,70 @@ int create_prod_dermo(char id_prod[], char id_dermo[]){
 
 }
 
-int create_log_product(char id_log[], char acao[], char id_produto[], char id_funcionario[], char id_filial[]){
+static int insert_log_product(MYSQL *conn, const char *id_log,
+                              const char *acao, const char *id_produto,
+                              const char *id_funcionario,
+                              const char *id_filial,
+                              const char *quantidade) {
+    char escaped_id_log[13];
+    char escaped_action[41];
+    char escaped_product_id[13];
+    char escaped_employee_id[13];
+    char escaped_branch_id[13];
+    char escaped_quantity[41];
+    char quantity_value[48];
+    char query[768];
 
+    if (id_log == NULL || acao == NULL || id_produto == NULL ||
+        id_funcionario == NULL || id_filial == NULL) {
+        return -1;
+    }
+    if (strlen(id_log) != 6 || strlen(acao) > 20 ||
+        strlen(id_produto) != 6 || strlen(id_funcionario) != 6 ||
+        strlen(id_filial) != 6 ||
+        (quantidade != NULL && strlen(quantidade) > 20)) {
+        return -1;
+    }
+
+#define ESCAPE_LOG_FIELD(output, input) \
+    mysql_real_escape_string(conn, output, input, (unsigned long)strlen(input))
+    ESCAPE_LOG_FIELD(escaped_id_log, id_log);
+    ESCAPE_LOG_FIELD(escaped_action, acao);
+    ESCAPE_LOG_FIELD(escaped_product_id, id_produto);
+    ESCAPE_LOG_FIELD(escaped_employee_id, id_funcionario);
+    ESCAPE_LOG_FIELD(escaped_branch_id, id_filial);
+#undef ESCAPE_LOG_FIELD
+
+    if (quantidade == NULL) {
+        snprintf(quantity_value, sizeof(quantity_value), "NULL");
+    } else {
+        mysql_real_escape_string(conn, escaped_quantity, quantidade,
+                                 (unsigned long)strlen(quantidade));
+        snprintf(quantity_value, sizeof(quantity_value), "'%s'",
+                 escaped_quantity);
+    }
+
+    snprintf(query, sizeof(query),
+             "INSERT INTO log_produto "
+             "(id_log, data_log, quantidade_produto, acao_log, id_produto, "
+             "funcionario_id, id_filial) "
+             "VALUES ('%s', CURRENT_DATE(), %s, '%s', '%s', '%s', '%s')",
+             escaped_id_log, quantity_value, escaped_action,
+             escaped_product_id, escaped_employee_id, escaped_branch_id);
+    return mysql_query(conn, query) == 0 ? 0 : -1;
+}
+
+int create_log_product(char id_log[], char acao[], char id_produto[],
+                       char id_funcionario[], char id_filial[],
+                       const char *quantidade) {
     MYSQL *conn = connect_to_database();
     if (conn == NULL) {
         fprintf(stderr, "Erro ao conectar ao banco de dados.\n");
         return -1;
     }
 
-    char query[512];
-    snprintf(query, sizeof(query),
-             "INSERT INTO log_produto (id_log, acao_log, id_produto, funcionario_id, id_filial) "
-             "VALUES ('%s', '%s', '%s', '%s', '%s')",
-             id_log, acao, id_produto, id_funcionario, id_filial);
-
-    if (mysql_query(conn, query)) {
+    if (insert_log_product(conn, id_log, acao, id_produto, id_funcionario,
+                           id_filial, quantidade) != 0) {
         fprintf(stderr, "Erro ao criar log de produto: %s\n",
                 mysql_error(conn));
         mysql_close(conn);
@@ -451,7 +537,79 @@ int create_log_product(char id_log[], char acao[], char id_produto[], char id_fu
 
     mysql_close(conn);
     return 0;
+}
 
+int register_product_sale(const char *id_log, const char *id_produto,
+                          const char *id_funcionario, const char *id_filial,
+                          const char *quantidade) {
+    MYSQL *conn = connect_to_database();
+    char escaped_product_id[13];
+    char escaped_branch_id[13];
+    char query[512];
+    int result = -1;
+
+    if (conn == NULL) return -1;
+    if (id_log == NULL || id_produto == NULL || id_funcionario == NULL ||
+        id_filial == NULL || quantidade == NULL || quantidade[0] == '\0' ||
+        strlen(id_log) != 6 || strlen(id_produto) != 6 ||
+        strlen(id_funcionario) != 6 || strlen(id_filial) != 6 ||
+        strlen(quantidade) > 10 ||
+        strspn(quantidade, "0123456789") != strlen(quantidade) ||
+        atoi(quantidade) <= 0) {
+        mysql_close(conn);
+        return -1;
+    }
+
+    if (mysql_autocommit(conn, 0) != 0) {
+        fprintf(stderr, "Erro ao iniciar transação da venda: %s\n",
+                mysql_error(conn));
+        mysql_close(conn);
+        return -1;
+    }
+
+    mysql_real_escape_string(conn, escaped_product_id, id_produto,
+                             (unsigned long)strlen(id_produto));
+    mysql_real_escape_string(conn, escaped_branch_id, id_filial,
+                             (unsigned long)strlen(id_filial));
+    snprintf(query, sizeof(query),
+             "UPDATE produto SET quantidade_produto = "
+             "CAST(quantidade_produto AS UNSIGNED) - %s "
+             "WHERE id_produto = '%s' AND id_filial = '%s' "
+             "AND CAST(quantidade_produto AS UNSIGNED) >= %s",
+             quantidade, escaped_product_id, escaped_branch_id, quantidade);
+
+    if (mysql_query(conn, query) != 0) {
+        fprintf(stderr, "Erro ao atualizar estoque da venda: %s\n",
+                mysql_error(conn));
+        mysql_rollback(conn);
+        goto cleanup;
+    }
+    if (mysql_affected_rows(conn) != 1) {
+        fprintf(stderr,
+                "Venda não realizada: estoque insuficiente ou produto inexistente.\n");
+        mysql_rollback(conn);
+        goto cleanup;
+    }
+
+    if (insert_log_product(conn, id_log, "Venda", id_produto,
+                           id_funcionario, id_filial, quantidade) != 0) {
+        fprintf(stderr, "Erro ao gravar log da venda: %s\n",
+                mysql_error(conn));
+        mysql_rollback(conn);
+        goto cleanup;
+    }
+
+    if (mysql_commit(conn) != 0) {
+        fprintf(stderr, "Erro ao confirmar venda: %s\n", mysql_error(conn));
+        mysql_rollback(conn);
+        goto cleanup;
+    }
+    result = 0;
+
+cleanup:
+    mysql_autocommit(conn, 1);
+    mysql_close(conn);
+    return result;
 }
 
 int get_produtos_vendidos_by_user_id(const char *id_user,
@@ -463,7 +621,7 @@ int get_produtos_vendidos_by_user_id(const char *id_user,
     char query[512];
     snprintf(query, sizeof(query),
              "SELECT p.id_produto, p.nome_produto, p.preco, "
-             "p.quantidade_produto, l.id_filial, l.data_log "
+             "l.quantidade_produto, l.id_filial, l.data_log "
              "FROM log_produto l "
              "JOIN produto p ON p.id_produto = l.id_produto "
              "WHERE l.funcionario_id = '%s' AND l.acao_log = 'Venda' "

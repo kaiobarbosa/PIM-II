@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include "frontend/components/unicode_input.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -168,7 +169,7 @@ static void draw_employee_list(int screen_height, int hero_left,
     int visible_count = (screen_height - divider_y - 9) / 2;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(2, hero_left + 4, "GERENCIAMENTO DE FUNCIONARIOS",
+    mvadd_utf8_clipped(2, hero_left + 4, "GERENCIAMENTO DE FUNCIONARIOS",
               hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
     mvhline(4, hero_left + 2, ACS_HLINE, hero_width - 4);
@@ -176,7 +177,7 @@ static void draw_employee_list(int screen_height, int hero_left,
     if (focus == 0) {
         attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
-    mvaddnstr(6, hero_left + 4, "+ Cadastrar novo funcionario",
+    mvadd_utf8_clipped(6, hero_left + 4, "+ Cadastrar novo funcionario",
               hero_width - 8);
     if (focus == 0) {
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
@@ -184,13 +185,13 @@ static void draw_employee_list(int screen_height, int hero_left,
 
     mvhline(divider_y, hero_left, ACS_HLINE, hero_width);
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(divider_y + 2, hero_left + 4, "FUNCIONARIOS CADASTRADOS",
+    mvadd_utf8_clipped(divider_y + 2, hero_left + 4, "FUNCIONARIOS CADASTRADOS",
               hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(divider_y + 4, hero_left + 4, "NOME", content_width / 3);
-    mvaddnstr(divider_y + 4, hero_left + 4 + content_width / 3,
+    mvadd_utf8_clipped(divider_y + 4, hero_left + 4, "NOME", content_width / 3);
+    mvadd_utf8_clipped(divider_y + 4, hero_left + 4 + content_width / 3,
               "FILIAL", content_width / 3);
-    mvaddnstr(divider_y + 4, hero_left + 4 + 2 * content_width / 3,
+    mvadd_utf8_clipped(divider_y + 4, hero_left + 4 + 2 * content_width / 3,
               "CARGO", content_width - 2 * content_width / 3);
     mvhline(divider_y + 5, hero_left + 4, ACS_HLINE, content_width);
 
@@ -215,10 +216,10 @@ static void draw_employee_list(int screen_height, int hero_left,
         } else if (!employees[employee_index].active) {
             attron(A_DIM);
         }
-        mvaddnstr(y, hero_left + 4, full_name, content_width / 3);
-        mvaddnstr(y, hero_left + 4 + content_width / 3,
+        mvadd_utf8_clipped(y, hero_left + 4, full_name, content_width / 3);
+        mvadd_utf8_clipped(y, hero_left + 4 + content_width / 3,
                   employees[employee_index].branch, content_width / 3);
-        mvaddnstr(y, hero_left + 4 + 2 * content_width / 3,
+        mvadd_utf8_clipped(y, hero_left + 4 + 2 * content_width / 3,
                   employees[employee_index].display_role[0] != '\0' ?
                       employees[employee_index].display_role :
                       role_names[employees[employee_index].role],
@@ -246,7 +247,7 @@ static void draw_employee_form(int screen_height, int hero_left,
     int buttons_y = screen_height - 4;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(title_y, hero_left + 4,
+    mvadd_utf8_clipped(title_y, hero_left + 4,
               editing_existing ? "EDITAR FUNCIONARIO" : "NOVO FUNCIONARIO",
               hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
@@ -259,7 +260,7 @@ static void draw_employee_form(int screen_height, int hero_left,
         char *value;
         int selected = focus == index;
 
-        mvaddnstr(y, label_x, get_field_label(field), 15);
+        mvadd_utf8_clipped(y, label_x, get_field_label(field), 15);
         if (selected) {
             attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
         } else {
@@ -270,21 +271,22 @@ static void draw_employee_form(int screen_height, int hero_left,
         mvaddch(y, value_x + field_width - 1, ']');
 
         if (field == FIELD_ROLE) {
-            mvaddnstr(y, value_x + 2, role_names[employee->role],
+            mvadd_utf8_clipped(y, value_x + 2, role_names[employee->role],
                       field_width - 4);
         } else {
             int column;
             value = get_field_value(employee, field, &capacity);
             if (field == FIELD_PASSWORD) {
-                for (column = 0; column < (int) strlen(value) &&
+                for (column = 0;
+                     column < input_string_character_count(value) &&
                      column < field_width - 4; column++) {
                     mvaddch(y, value_x + 2 + column, '*');
                 }
             } else {
-                mvaddnstr(y, value_x + 2, value, field_width - 4);
+                mvadd_utf8_clipped(y, value_x + 2, value, field_width - 4);
             }
             if (selected && text_editing) {
-                int cursor_x = value_x + 2 + (int) strlen(value);
+                int cursor_x = value_x + 2 + input_string_display_width(value);
                 int max_x = value_x + field_width - 2;
                 if (cursor_x > max_x) cursor_x = max_x;
                 move(y, cursor_x);
@@ -300,7 +302,7 @@ static void draw_employee_form(int screen_height, int hero_left,
     if (focus == field_count) {
         attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
-    mvaddnstr(buttons_y, hero_left + 4,
+    mvadd_utf8_clipped(buttons_y, hero_left + 4,
               editing_existing ? "[ CONFIRMAR ]" : "[ CANCELAR ]", 14);
     if (focus == field_count) {
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
@@ -309,7 +311,7 @@ static void draw_employee_form(int screen_height, int hero_left,
     if (focus == field_count + 1) {
         attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     }
-    mvaddnstr(buttons_y, hero_left + 23,
+    mvadd_utf8_clipped(buttons_y, hero_left + 23,
               editing_existing ? "[ EXCLUIR ]" : "[ CADASTRAR ]", 16);
     if (focus == field_count + 1) {
         attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
@@ -324,14 +326,14 @@ static void draw_choice_dialog(int hero_left, int hero_width,
     int option_y = 13;
 
     attron(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(8, hero_left + 4, title, hero_width - 8);
+    mvadd_utf8_clipped(8, hero_left + 4, title, hero_width - 8);
     attroff(COLOR_PAIR(1) | A_BOLD);
-    mvaddnstr(10, hero_left + 4, message, hero_width - 8);
+    mvadd_utf8_clipped(10, hero_left + 4, message, hero_width - 8);
     if (choice == 0) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(option_y, center_x - 14, first_option, 12);
+    mvadd_utf8_clipped(option_y, center_x - 14, first_option, 12);
     if (choice == 0) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
     if (choice == 1) attron(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
-    mvaddnstr(option_y, center_x + 2, second_option, 12);
+    mvadd_utf8_clipped(option_y, center_x + 2, second_option, 12);
     if (choice == 1) attroff(COLOR_PAIR(2) | A_BOLD | A_REVERSE);
 }
 
@@ -374,19 +376,19 @@ static void draw_screen(int screen_height, int screen_width, int sidebar_width,
 
     if (status_message[0] != '\0') {
         attron(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
-        mvaddnstr(screen_height - 3, hero_left + 4, status_message,
+        mvadd_utf8_clipped(screen_height - 3, hero_left + 4, status_message,
                   hero_width - 8);
         attroff(COLOR_PAIR(status_is_error ? 3 : 2) | A_BOLD);
     }
 
     attron(A_DIM);
     if (screen == SCREEN_NEW_FORM || screen == SCREEN_EDIT_FORM) {
-        mvaddnstr(screen_height - 2, 2,
+        mvadd_utf8_clipped(screen_height - 2, 2,
                   form_editing ? "Digite o valor  |  Enter: concluir edicao  |  Esc: cancelar campo" :
                   "Setas: navegar/selecionar cargo e CEP  |  Enter: editar  |  Esc: voltar",
                   screen_width - 4);
     } else {
-        mvaddnstr(screen_height - 2, 2,
+        mvadd_utf8_clipped(screen_height - 2, 2,
                   "Setas: navegar  |  Enter: selecionar  |  Esc: voltar",
                   screen_width - 4);
     }
@@ -515,7 +517,7 @@ int employee_screen(char user_id[7], char *user_profile) {
         
         refresh(); // Atualiza a tela após todas as sobreposições
 
-        character = getch();
+        character = read_input_character();
 
         // --- INTERCEPTADOR DA SIDEBAR ---
         if (is_in_sidebar) {
@@ -653,14 +655,13 @@ int employee_screen(char user_id[7], char *user_profile) {
                 } else if (field_value != NULL &&
                            (character == KEY_BACKSPACE || character == 127 ||
                             character == 8)) {
-                    int length = (int) strlen(field_value);
-                    if (length > 0) field_value[length - 1] = '\0';
-                } else if (field_value != NULL && character >= 32 &&
-                           character <= 255 &&
-                           strlen(field_value) < (size_t) field_capacity - 1) {
-                    int length = (int) strlen(field_value);
-                    field_value[length] = (char) character;
-                    field_value[length + 1] = '\0';
+                    input_backspace(field_value);
+                } else if (field_value != NULL &&
+                           input_character_is_printable(character)) {
+                    size_t length = strlen(field_value);
+                    input_character_append(field_value,
+                                           (size_t)field_capacity, &length,
+                                           character);
                 }
             } else if (character == KEY_UP) {
                 form_focus = form_focus == 0 ? field_count + 1 : form_focus - 1;
