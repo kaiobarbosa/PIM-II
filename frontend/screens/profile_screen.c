@@ -533,7 +533,7 @@ int profile_screen(char user_id[7], char *user_profile) {
                         status_is_error = 0;
                     } else {
                         snprintf(status_message, sizeof(status_message),
-                                 "Nao foi possivel enviar. Verifique os campos e a configuracao SMTP.");
+                                 "Falha ao enviar o codigo. Consulte o erro SMTP no terminal.");
                         status_is_error = 1;
                     }
                 } else if (update_profile_presentation(

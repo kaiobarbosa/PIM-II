@@ -13,6 +13,22 @@ typedef struct {
     size_t offset;
 } EmailUpload;
 
+static int has_supported_smtp_scheme(const char *url) {
+    const char *host;
+
+    if (url == NULL) return 0;
+    if (strncmp(url, "smtp://", 7) == 0) {
+        host = url + 7;
+    } else if (strncmp(url, "smtps://", 8) == 0) {
+        host = url + 8;
+    } else {
+        return 0;
+    }
+
+    return host[0] != '\0' && host[0] != '/' && host[0] != '?' &&
+           host[0] != '#';
+}
+
 static size_t read_email_message(char *buffer, size_t size, size_t count,
                                  void *user_data) {
     EmailUpload *upload = (EmailUpload *)user_data;
@@ -60,8 +76,25 @@ int send_password_confirmation_email(const char *recipient,
         smtp_password == NULL || smtp_password[0] == '\0' ||
         sender == NULL || sender[0] == '\0' ||
         strchr(sender, '\r') != NULL || strchr(sender, '\n') != NULL) {
-        fprintf(stderr, "Configure SMTP_URL, SMTP_USERNAME, SMTP_PASSWORD e "
-                        "SMTP_FROM para enviar e-mails.\n");
+        fprintf(stderr, "Configuracao SMTP incompleta:");
+        if (smtp_url == NULL || smtp_url[0] == '\0')
+            fprintf(stderr, " SMTP_URL");
+        if (smtp_username == NULL || smtp_username[0] == '\0')
+            fprintf(stderr, " SMTP_USERNAME");
+        if (smtp_password == NULL || smtp_password[0] == '\0')
+            fprintf(stderr, " SMTP_PASSWORD");
+        if (sender == NULL || sender[0] == '\0' ||
+            strchr(sender, '\r') != NULL || strchr(sender, '\n') != NULL)
+            fprintf(stderr, " SMTP_FROM");
+        fprintf(stderr, ". Confira os nomes e valores no .env.\n");
+        return 0;
+    }
+
+    if (!has_supported_smtp_scheme(smtp_url)) {
+        fprintf(stderr,
+                "SMTP_URL invalida: use smtp://servidor:587 para STARTTLS "
+                "ou smtps://servidor:465 para TLS implicito, conforme o "
+                "provedor.\n");
         return 0;
     }
 
@@ -125,9 +158,30 @@ int send_password_confirmation_email(const char *recipient,
     result = curl_easy_perform(curl);
     if (result == CURLE_OK) {
         success = 1;
+    } else if (result == CURLE_OPERATION_TIMEDOUT) {
+        fprintf(stderr,
+                "Timeout no envio SMTP. Ter acesso a internet nao garante "
+                "acesso a porta SMTP; confira o servidor e a porta em "
+                "SMTP_URL, e se a rede ou o provedor libera essa conexao.\n");
+        fprintf(stderr, "Detalhe libcurl: %s\n", curl_easy_strerror(result));
+    } else if (result == CURLE_COULDNT_RESOLVE_HOST) {
+        fprintf(stderr,
+                "Nao foi possivel localizar o servidor SMTP indicado em "
+                "SMTP_URL. Confira o nome do host.\n");
+        fprintf(stderr, "Detalhe libcurl: %s\n", curl_easy_strerror(result));
+    } else if (result == CURLE_COULDNT_CONNECT) {
+        fprintf(stderr,
+                "Nao foi possivel conectar ao servidor SMTP. Confira a "
+                "porta e o acesso de saida da rede.\n");
+        fprintf(stderr, "Detalhe libcurl: %s\n", curl_easy_strerror(result));
+    } else if (result == CURLE_LOGIN_DENIED) {
+        fprintf(stderr,
+                "O servidor SMTP recusou a autenticacao. Confira "
+                "SMTP_USERNAME e SMTP_PASSWORD.\n");
+        fprintf(stderr, "Detalhe libcurl: %s\n", curl_easy_strerror(result));
     } else {
-        fprintf(stderr, "Falha no envio do e-mail de confirmacao: %s\n",
-                curl_easy_strerror(result));
+        fprintf(stderr, "Falha no envio do e-mail de confirmacao.\n");
+        fprintf(stderr, "Detalhe libcurl: %s\n", curl_easy_strerror(result));
     }
 
     curl_slist_free_all(recipients);
